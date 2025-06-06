@@ -1,0 +1,36 @@
+This is a C# based repository with a CLI client. Please follow these guidelines when contributing:
+
+## Code Standards
+
+## Building
+- The first dotnet build command will take longer to complete (approximately 4 minutes). Set a larger timeout, or run it twice.
+
+### Incremental Work
+- Store your plans as comments in the PR
+- Commit every time you finish editing a file or sub-function and push
+- Comment in the PR what you have done in sufficient detail to allow work to be resumed if interrupted.
+
+### Required After Completion
+- Build the entire solution
+- Run `dotnet format` on changed projects to ensure the code formatting is correct
+- Fix any errors OR warnings. Do not fix warnings by disabling warnings.
+- Alert the user to any new errors or warnings
+- Commit again after you have fixed errors OR warnings
+- Finally, do a security review of all code, commit again if you need to make changes.
+
+## Favour Modularity and Extensibility
+- Create new projects for new functionality, or when sensible (e.g. supporting alternate providers, new document formats, etc)
+- When there is at least two of a particular type of class (e.g. document parsers), implement them using interfaces or base/abstract classes.
+- When writing tests, test the base/interface rather than the derived type, except where it is not sensible (e.g. constructors).
+
+## Key Guidelines
+1. Follow C# best practices and idiomatic patterns
+2. Use Microsoft .NET coding style
+3. Avoid naming types that conflict with common .NET types
+4. Do not use #region unless absolutely unavoidable
+5. Document public APIs and complex logic. Suggest changes to the `docs/` folder when appropriate
+6. When adding new packages, check if the solution already references this package, or if a package it includes already includes it.
+7. Check existing solution packages before bringing in a new package - a preferred package may already exist
+8. Don't use anonymous return types; create a record struct instead.
+9. NEVER use 'dynamic' unless absolutely unavoidable
+10. Reflection or other dynamic typing at runtime pushes errors from compile time to runtime; avoid it.
