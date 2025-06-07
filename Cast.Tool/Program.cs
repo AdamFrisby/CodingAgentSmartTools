@@ -40,6 +40,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertForLoopCommand>("convert-for-loop")
         .WithDescription("Convert between for and foreach loops");
+        
+    config.AddCommand<ChangeMethodSignatureCommand>("change-method-signature")
+        .WithDescription("Change method signature (parameters and return type)");
 });
 
 return app.Run(args);

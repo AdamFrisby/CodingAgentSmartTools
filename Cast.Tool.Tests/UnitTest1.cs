@@ -471,4 +471,53 @@ namespace TestNamespace
         // Cleanup
         File.Delete(csFile);
     }
+
+    [Fact]
+    public async Task ChangeMethodSignatureCommand_ShouldChangeParameters()
+    {
+        // Arrange
+        var testCodeWithMethod = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod(int value)
+        {
+            Console.WriteLine(value);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithMethod);
+
+        var command = new ChangeMethodSignatureCommand();
+        var settings = new ChangeMethodSignatureCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 7, // Line with method declaration
+            ColumnNumber = 8,
+            Parameters = "string name, int age",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("string name", modifiedCode);
+        Assert.Contains("int age", modifiedCode);
+        Assert.DoesNotContain("TestMethod(int value)", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
