@@ -1473,4 +1473,51 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task MakeLocalFunctionStaticCommand_ShouldMakeLocalFunctionStatic()
+    {
+        // Arrange
+        var testCodeWithLocalFunction = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void Test()
+        {
+            void LocalFunc() { Console.WriteLine(""Test""); }
+            LocalFunc();
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithLocalFunction);
+
+        var command = new MakeLocalFunctionStaticCommand();
+        var settings = new MakeLocalFunctionStaticCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with local function
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("static", modifiedCode);
+        Assert.Contains("void LocalFunc()", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

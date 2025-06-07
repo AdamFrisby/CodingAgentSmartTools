@@ -106,6 +106,15 @@ app.Configure(config =>
         
     config.AddCommand<InlineTemporaryVariableCommand>("inline-temporary")
         .WithDescription("Inline temporary variable");
+        
+    config.AddCommand<ReverseForStatementCommand>("reverse-for")
+        .WithDescription("Reverse for statement direction");
+        
+    config.AddCommand<MakeLocalFunctionStaticCommand>("make-local-function-static")
+        .WithDescription("Make local function static");
+        
+    config.AddCommand<MoveDeclarationNearReferenceCommand>("move-declaration-near-reference")
+        .WithDescription("Move variable declaration closer to its first use");
 });
 
 return app.Run(args);
