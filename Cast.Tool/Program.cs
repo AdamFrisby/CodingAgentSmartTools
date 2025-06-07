@@ -142,6 +142,9 @@ app.Configure(config =>
         
     config.AddCommand<ExtractInterfaceCommand>("extract-interface")
         .WithDescription("Extract interface from existing class");
+        
+    config.AddCommand<ExtractLocalFunctionCommand>("extract-local-function")
+        .WithDescription("Extract local function from code block");
 });
 
 return app.Run(args);

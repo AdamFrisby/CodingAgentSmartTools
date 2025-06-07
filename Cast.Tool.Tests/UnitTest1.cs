@@ -1705,4 +1705,54 @@ namespace TestNamespace
         if (File.Exists(interfacePath))
             File.Delete(interfacePath);
     }
+
+    [Fact]
+    public async Task ExtractLocalFunctionCommand_ShouldExtractLocalFunction()
+    {
+        // Arrange
+        var testCodeWithMethod = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Calculate(int x, int y)
+        {
+            int temp = x * 2;
+            int result = temp + y;
+            Console.WriteLine($""Result: {result}"");
+            return result;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithMethod);
+
+        var command = new ExtractLocalFunctionCommand();
+        var settings = new ExtractLocalFunctionCommandSettings
+        {
+            FilePath = csFile,
+            FunctionName = "ProcessValues",
+            StartLine = 9, // Lines with temp and result calculations
+            EndLine = 10,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("ProcessValues", modifiedCode); // Should have local function
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
