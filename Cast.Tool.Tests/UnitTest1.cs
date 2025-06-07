@@ -1520,4 +1520,52 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task UseLambdaExpressionCommand_ShouldConvertExpressionToBlock()
+    {
+        // Arrange
+        var testCodeWithLambda = @"using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void Test()
+        {
+            var numbers = new[] { 1, 2, 3 };
+            var doubled = numbers.Select(x => x * 2);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithLambda);
+
+        var command = new UseLambdaExpressionCommand();
+        var settings = new UseLambdaExpressionCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 11, // Line with lambda
+            ColumnNumber = 50, // Position in lambda (adjusted)
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("return", modifiedCode); // Should have return statement in block
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

@@ -115,6 +115,15 @@ app.Configure(config =>
         
     config.AddCommand<MoveDeclarationNearReferenceCommand>("move-declaration-near-reference")
         .WithDescription("Move variable declaration closer to its first use");
+        
+    config.AddCommand<UseLambdaExpressionCommand>("use-lambda-expression")
+        .WithDescription("Convert between lambda expression and block body");
+        
+    config.AddCommand<SyncNamespaceWithFolderCommand>("sync-namespace")
+        .WithDescription("Sync namespace with folder structure");
+        
+    config.AddCommand<InvertConditionalExpressionsCommand>("invert-conditional")
+        .WithDescription("Invert conditional expressions and logical operators");
 });
 
 return app.Run(args);
