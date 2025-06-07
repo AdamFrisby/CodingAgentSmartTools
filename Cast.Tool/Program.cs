@@ -49,6 +49,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertCastToAsExpressionCommand>("convert-cast-as")
         .WithDescription("Convert between cast and as expressions");
+        
+    config.AddCommand<ConvertGetMethodToPropertyCommand>("convert-get-method")
+        .WithDescription("Convert between Get method and property");
 });
 
 return app.Run(args);
