@@ -25,6 +25,9 @@ app.Configure(config =>
         
     config.AddCommand<AddAwaitCommand>("add-await")
         .WithDescription("Add await to an async call");
+        
+    config.AddCommand<AddConstructorParametersCommand>("add-constructor-params")
+        .WithDescription("Add constructor parameters from class members");
 });
 
 return app.Run(args);

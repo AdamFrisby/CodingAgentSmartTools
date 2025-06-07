@@ -136,6 +136,59 @@ namespace TestNamespace
     }
 
     [Fact]
+    public async Task AddConstructorParametersCommand_ShouldAddConstructor()
+    {
+        // Arrange
+        var testCodeWithProperties = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public string Name { get; set; }
+        public int Age { get; set; }
+        
+        public void TestMethod()
+        {
+            Console.WriteLine($""Hello {Name}, age {Age}"");
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithProperties);
+
+        var command = new AddConstructorParametersCommand();
+        var settings = new AddConstructorParametersCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 5, // Line with class declaration
+            ColumnNumber = 4,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("public TestClass(", modifiedCode);
+        Assert.Contains("string name", modifiedCode);
+        Assert.Contains("int age", modifiedCode);
+        Assert.Contains("this.Name = name;", modifiedCode);
+        Assert.Contains("this.Age = age;", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
     public async Task AddAwaitCommand_ShouldAddAwait()
     {
         // Arrange
