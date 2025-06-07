@@ -1568,4 +1568,71 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ExtractBaseClassCommand_ShouldExtractBaseClass()
+    {
+        // Arrange
+        var testCodeWithClass = @"using System;
+
+namespace TestNamespace
+{
+    public class Employee
+    {
+        public string Name { get; set; }
+        public int Age { get; set; }
+        public string Department { get; set; }
+        private string socialSecurityNumber;
+        
+        public void PrintInfo()
+        {
+            Console.WriteLine($""Name: {Name}, Age: {Age}"");
+        }
+        
+        public void PrintDepartment()
+        {
+            Console.WriteLine($""Department: {Department}"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithClass);
+
+        var command = new ExtractBaseClassCommand();
+        var settings = new ExtractBaseClassCommandSettings
+        {
+            FilePath = csFile,
+            ClassName = "Employee",
+            BaseClassName = "Person",
+            Members = "Name,Age,PrintInfo",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains(":Person", modifiedCode); // Should inherit from Person
+        Assert.DoesNotContain("public string Name", modifiedCode); // Should be moved to base class
+        
+        // Check base class file was created
+        var baseClassPath = Path.Combine(Path.GetDirectoryName(outputFile)!, "Person.cs");
+        Assert.True(File.Exists(baseClassPath));
+        var baseClassCode = await File.ReadAllTextAsync(baseClassPath);
+        Assert.Contains("public class Person", baseClassCode);
+        Assert.Contains("public string Name", baseClassCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+        if (File.Exists(baseClassPath))
+            File.Delete(baseClassPath);
+    }
 }

@@ -136,6 +136,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertTupleToStructCommand>("convert-tuple-struct")
         .WithDescription("Convert tuple to struct");
+        
+    config.AddCommand<ExtractBaseClassCommand>("extract-base-class")
+        .WithDescription("Extract base class from existing class");
 });
 
 return app.Run(args);
