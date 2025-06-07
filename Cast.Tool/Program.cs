@@ -94,6 +94,9 @@ app.Configure(config =>
         
     config.AddCommand<InvertIfStatementCommand>("invert-if")
         .WithDescription("Invert if statement condition");
+        
+    config.AddCommand<IntroduceParameterCommand>("introduce-parameter")
+        .WithDescription("Introduce parameter to method");
 });
 
 return app.Run(args);

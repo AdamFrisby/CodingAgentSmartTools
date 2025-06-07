@@ -1378,4 +1378,52 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task IntroduceParameterCommand_ShouldAddParameterToMethod()
+    {
+        // Arrange
+        var testCodeWithMethod = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void TestMethod()
+        {
+            Console.WriteLine(""Test"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithMethod);
+
+        var command = new IntroduceParameterCommand();
+        var settings = new IntroduceParameterCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 7, // Line with method declaration
+            ParameterName = "message",
+            ParameterType = "string",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("string message", modifiedCode);
+        Assert.Contains("TestMethod(string message)", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
