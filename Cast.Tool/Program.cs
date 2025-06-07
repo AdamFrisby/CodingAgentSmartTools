@@ -88,6 +88,9 @@ app.Configure(config =>
         
     config.AddCommand<GenerateDefaultConstructorCommand>("generate-default-constructor")
         .WithDescription("Generate default constructor for class or struct");
+        
+    config.AddCommand<MakeMemberStaticCommand>("make-member-static")
+        .WithDescription("Make member static");
 });
 
 return app.Run(args);
