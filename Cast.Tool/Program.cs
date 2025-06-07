@@ -124,6 +124,15 @@ app.Configure(config =>
         
     config.AddCommand<InvertConditionalExpressionsCommand>("invert-conditional")
         .WithDescription("Invert conditional expressions and logical operators");
+        
+    config.AddCommand<SplitOrMergeIfStatementsCommand>("split-merge-if")
+        .WithDescription("Split or merge if statements");
+        
+    config.AddCommand<WrapBinaryExpressionsCommand>("wrap-binary-expressions")
+        .WithDescription("Wrap binary expressions with line breaks");
+        
+    config.AddCommand<GenerateComparisonOperatorsCommand>("generate-comparison-operators")
+        .WithDescription("Generate comparison operators for class");
 });
 
 return app.Run(args);
