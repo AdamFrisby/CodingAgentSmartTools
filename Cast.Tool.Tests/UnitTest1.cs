@@ -968,4 +968,60 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertLocalFunctionToMethodCommand_ShouldConvertLocalFunctionToMethod()
+    {
+        // Arrange
+        var testCodeWithLocalFunction = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Calculate(int x, int y)
+        {
+            int Add(int a, int b)
+            {
+                return a + b;
+            }
+            
+            return Add(x, y);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithLocalFunction);
+
+        var command = new ConvertLocalFunctionToMethodCommand();
+        var settings = new ConvertLocalFunctionToMethodCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with local function declaration
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("private", modifiedCode);
+        Assert.Contains("int Add(int a, int b)", modifiedCode);
+        // Verify the local function was removed (it shouldn't appear inside a method anymore)
+        var lines = modifiedCode.Split('\n');
+        var addMethodLine = lines.FirstOrDefault(l => l.Contains("int Add(int a, int b)"));
+        Assert.NotNull(addMethodLine);
+        Assert.Contains("private", addMethodLine);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

@@ -70,6 +70,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertClassToRecordCommand>("convert-class-record")
         .WithDescription("Convert class to record");
+        
+    config.AddCommand<ConvertLocalFunctionToMethodCommand>("convert-local-function")
+        .WithDescription("Convert local function to method");
 });
 
 return app.Run(args);
