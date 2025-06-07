@@ -107,6 +107,7 @@ public class AddUsingCommand : Command<AddUsingCommand.Settings>
         // Create the new using directive
         var newUsing = SyntaxFactory.UsingDirective(
             SyntaxFactory.IdentifierName(namespaceName))
+            .WithUsingKeyword(SyntaxFactory.Token(SyntaxKind.UsingKeyword).WithTrailingTrivia(SyntaxFactory.Space))
             .WithTrailingTrivia(SyntaxFactory.LineFeed);
 
         // Find the correct position to insert the using statement
