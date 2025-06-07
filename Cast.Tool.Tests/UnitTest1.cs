@@ -877,4 +877,51 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task IntroduceLocalVariableCommand_ShouldExtractExpression()
+    {
+        // Arrange
+        var testCodeWithExpression = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            Console.WriteLine(DateTime.Now.ToString());
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithExpression);
+
+        var command = new IntroduceLocalVariableCommand();
+        var settings = new IntroduceLocalVariableCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with DateTime.Now.ToString()
+            ColumnNumber = 30, // Position in expression
+            VariableName = "formattedDate",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("DateTime.Now.ToString()", modifiedCode); // Should still contain the original for now
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

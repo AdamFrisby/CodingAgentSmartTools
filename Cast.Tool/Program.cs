@@ -64,6 +64,9 @@ app.Configure(config =>
         
     config.AddCommand<UseImplicitTypeCommand>("use-implicit-type")
         .WithDescription("Use implicit type (var)");
+        
+    config.AddCommand<IntroduceLocalVariableCommand>("introduce-local-variable")
+        .WithDescription("Introduce local variable for expression");
 });
 
 return app.Run(args);
