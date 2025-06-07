@@ -1909,4 +1909,62 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task MoveTypeToMatchingFileCommand_ShouldMoveType()
+    {
+        // Arrange
+        var testCodeWithMultipleTypes = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Add(int a, int b) => a + b;
+    }
+    
+    public class Logger
+    {
+        public void Log(string message) => Console.WriteLine(message);
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var tempDir = Path.GetDirectoryName(csFile)!;
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithMultipleTypes);
+
+        var command = new MoveTypeToMatchingFileCommand();
+        var settings = new MoveTypeToMatchingFileCommandSettings
+        {
+            FilePath = csFile,
+            TypeName = "Logger",
+            TargetDirectory = tempDir,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        
+        // Check that Logger was removed from original file
+        var modifiedOriginalCode = await File.ReadAllTextAsync(csFile);
+        Assert.DoesNotContain("public class Logger", modifiedOriginalCode);
+        Assert.Contains("public class Calculator", modifiedOriginalCode); // Calculator should remain
+        
+        // Check that Logger.cs was created
+        var loggerFilePath = Path.Combine(tempDir, "Logger.cs");
+        Assert.True(File.Exists(loggerFilePath));
+        var loggerCode = await File.ReadAllTextAsync(loggerFilePath);
+        Assert.Contains("public class Logger", loggerCode);
+        Assert.Contains("namespace TestNamespace", loggerCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        if (File.Exists(loggerFilePath))
+            File.Delete(loggerFilePath);
+    }
 }

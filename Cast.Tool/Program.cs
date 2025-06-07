@@ -154,6 +154,9 @@ app.Configure(config =>
         
     config.AddCommand<InlineMethodCommand>("inline-method")
         .WithDescription("Inline a method by replacing its calls with the method body");
+        
+    config.AddCommand<MoveTypeToMatchingFileCommand>("move-type-to-file")
+        .WithDescription("Move type to its own matching file");
 });
 
 return app.Run(args);
