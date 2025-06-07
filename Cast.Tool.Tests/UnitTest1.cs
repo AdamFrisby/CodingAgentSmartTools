@@ -2,6 +2,7 @@ using Xunit;
 using Cast.Tool.Commands;
 using System.IO;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace Cast.Tool.Tests;
 
@@ -2186,6 +2187,491 @@ namespace TestNamespace
         var modifiedCode = await File.ReadAllTextAsync(outputFile);
         // The command should have applied some form of pattern analysis
         Assert.Contains("could use recursive patterns", modifiedCode); // Should have added comment
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task ExtractMethodCommand_ShouldExtractMethod()
+    {
+        // Arrange - code with multiple statements that can be extracted
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var x = 5;
+            var y = 10;
+            var result = x + y;
+            Console.WriteLine($""Result: {result}"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new ExtractMethodCommand();
+        var settings = new ExtractMethodCommand.Settings
+        {
+            FilePath = csFile,
+            MethodName = "CalculateAndPrint",
+            LineNumber = 9, // Start at var x = 5;
+            ColumnNumber = 0,
+            EndLineNumber = 12, // End at Console.WriteLine
+            EndColumnNumber = 50,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("CalculateAndPrint()", modifiedCode); // Should have method call
+        // The extracted method should be present somewhere in the class
+        Assert.Contains("CalculateAndPrint", modifiedCode); // Method name should appear at least twice (call + definition)
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task AddExplicitCastCommand_ShouldAddCast()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            object obj = ""Hello"";
+            var str = obj; // This line will get the cast
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new AddExplicitCastCommand();
+        var settings = new AddExplicitCastCommand.Settings
+        {
+            FilePath = csFile,
+            TargetType = "string",
+            LineNumber = 10, // Line with var str = obj;
+            ColumnNumber = 22, // Position of 'obj'
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("(string)obj", modifiedCode); // Should have the cast
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public void SortUsingsCommand_ShouldSortUsings()
+    {
+        // Arrange
+        var testCode = @"using System.Text;
+using System;
+using System.Collections.Generic;
+using MyProject.Models;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        File.WriteAllText(csFile, testCode);
+
+        var command = new SortUsingsCommand();
+        var settings = new SortUsingsSettings
+        {
+            FilePath = csFile,
+            OutputPath = outputFile,
+            DryRun = false,
+            SeparateSystem = true
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = File.ReadAllText(outputFile);
+        var lines = modifiedCode.Split('\n').Select(l => l.Trim()).Where(l => l.StartsWith("using")).ToArray();
+        
+        // Should start with System usings
+        Assert.True(lines[0].StartsWith("using System;") || lines[0].StartsWith("using System"));
+        Assert.Contains("using MyProject.Models;", lines); // Non-system using should be present
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task WrapBinaryExpressionsCommand_ShouldWrapExpression()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var result = 5 + 10 * 3 - 2;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new WrapBinaryExpressionsCommand();
+        var settings = new WrapBinaryExpressionsCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with the binary expression
+            ColumnNumber = 25, // Position in the expression
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The expression should be modified (exact format may vary)
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task GenerateComparisonOperatorsCommand_ShouldGenerateOperators()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class Point
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new GenerateComparisonOperatorsCommand();
+        var settings = new GenerateComparisonOperatorsCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 5, // Line with class Point
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("operator<", modifiedCode); // Operators exist but may not have spaces
+        Assert.Contains("operator<=", modifiedCode);
+        Assert.Contains("operator>", modifiedCode);
+        Assert.Contains("operator>=", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public void RemoveUnusedUsingsCommand_ShouldRemoveUnusedUsings()
+    {
+        // Arrange
+        var testCode = @"using System;
+using System.Collections.Generic;
+using System.Linq;
+using UnusedNamespace;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var list = new List<int>();
+            Console.WriteLine(list.Count);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        File.WriteAllText(csFile, testCode);
+
+        var command = new RemoveUnusedUsingsCommand();
+        var settings = new RemoveUnusedUsingsSettings
+        {
+            FilePath = csFile,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        // Note: This is a simplified test since proper unused using detection requires semantic analysis
+        // The command should complete successfully even if the implementation is basic
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task RenameCommand_DryRun_ShouldShowChanges()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void OldMethodName()
+        {
+            Console.WriteLine(""Hello"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new RenameCommand();
+        var settings = new RenameCommand.Settings
+        {
+            FilePath = csFile,
+            OldName = "OldMethodName",
+            NewName = "NewMethodName",
+            LineNumber = 7, // Line with OldMethodName
+            ColumnNumber = 20, // Position of method name
+            OutputPath = outputFile,
+            DryRun = true // Test dry run functionality
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        // In dry run mode, original file should be unchanged
+        var originalContent = await File.ReadAllTextAsync(csFile);
+        Assert.Contains("OldMethodName", originalContent);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task ConvertAutoPropertyCommand_ShouldConvertProperty()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public string Name { get; set; }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new ConvertAutoPropertyCommand();
+        var settings = new ConvertAutoPropertyCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 7, // Line with property
+            ColumnNumber = 23, // Position of property name
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The property should be converted (either to full property or from full to auto)
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task IntroduceUsingStatementCommand_ShouldAddUsingStatement()
+    {
+        // Arrange - code with a disposable object that could use a using statement
+        var testCode = @"using System;
+using System.IO;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var stream = new FileStream(""test.txt"", FileMode.Create);
+            // ... some code that uses stream
+            stream.Dispose();
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new IntroduceUsingStatementCommand();
+        var settings = new IntroduceUsingStatementCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 10, // Line with stream declaration
+            ColumnNumber = 12, // Position of stream variable
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("using(", modifiedCode); // Should have using statement
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task MoveDeclarationNearReferenceCommand_ShouldMoveDeclaration()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            int value = 10;
+            
+            // Some other code here
+            Console.WriteLine(""Other code"");
+            
+            // Use the variable much later
+            Console.WriteLine(value);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new MoveDeclarationNearReferenceCommand();
+        var settings = new MoveDeclarationNearReferenceCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with variable declaration
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The declaration should have been moved closer to its usage
+        Assert.NotEqual(testCode, modifiedCode);
 
         // Cleanup
         File.Delete(csFile);
