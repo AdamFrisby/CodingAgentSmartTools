@@ -37,6 +37,9 @@ app.Configure(config =>
         
     config.AddCommand<AddNamedArgumentCommand>("add-named-argument")
         .WithDescription("Add named arguments to method calls");
+        
+    config.AddCommand<ConvertForLoopCommand>("convert-for-loop")
+        .WithDescription("Convert between for and foreach loops");
 });
 
 return app.Run(args);
