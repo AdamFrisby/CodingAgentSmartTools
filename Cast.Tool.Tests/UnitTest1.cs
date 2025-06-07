@@ -1121,4 +1121,57 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertToInterpolatedStringCommand_ShouldConvertConcatenationToInterpolated()
+    {
+        // Arrange
+        var testCodeWithConcatenation = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void Test()
+        {
+            string name = ""John"";
+            int age = 25;
+            string message = ""Hello "" + name + "", you are "" + age + "" years old"";
+            Console.WriteLine(message);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithConcatenation);
+
+        var command = new ConvertToInterpolatedStringCommand();
+        var settings = new ConvertToInterpolatedStringCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 11, // Line with string concatenation
+            ColumnNumber = 30, // Position in concatenation
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("$\"", modifiedCode); // Should contain interpolated string
+        // Should contain fewer plus signs for concatenation
+        var originalPlusCount = testCodeWithConcatenation.Split('+').Length - 1;
+        var modifiedPlusCount = modifiedCode.Split('+').Length - 1;
+        Assert.True(modifiedPlusCount < originalPlusCount);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

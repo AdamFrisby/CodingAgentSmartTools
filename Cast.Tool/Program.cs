@@ -79,6 +79,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertStringFormatCommand>("convert-string-format")
         .WithDescription("Convert String.Format calls to interpolated strings");
+        
+    config.AddCommand<ConvertToInterpolatedStringCommand>("convert-to-interpolated")
+        .WithDescription("Convert string concatenation to interpolated string");
 });
 
 return app.Run(args);
