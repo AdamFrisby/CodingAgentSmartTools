@@ -2091,4 +2091,51 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task SyncTypeAndFileCommand_ShouldRenameTypeToMatchFile()
+    {
+        // Arrange - file name doesn't match type name
+        var testCodeWithMismatchedType = @"using System;
+
+namespace TestNamespace
+{
+    public class WrongName
+    {
+        public void DoSomething()
+        {
+            Console.WriteLine(""Doing something..."");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        // Rename the file to have a different name than the type
+        var correctFile = Path.Combine(Path.GetDirectoryName(csFile)!, "CorrectName.cs");
+        File.Move(tempFile, csFile);
+        File.Move(csFile, correctFile);
+        await File.WriteAllTextAsync(correctFile, testCodeWithMismatchedType);
+
+        var command = new SyncTypeAndFileCommand();
+        var settings = new SyncTypeAndFileCommandSettings
+        {
+            FilePath = correctFile,
+            RenameType = true,
+            RenameFile = false,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(correctFile);
+        Assert.Contains("public class CorrectName", modifiedCode); // Type should be renamed to match file
+        Assert.DoesNotContain("public class WrongName", modifiedCode); // Old type name should be gone
+
+        // Cleanup
+        File.Delete(correctFile);
+    }
 }

@@ -163,6 +163,9 @@ app.Configure(config =>
         
     config.AddCommand<PullMembersUpCommand>("pull-members-up")
         .WithDescription("Pull members up to base type or interface");
+        
+    config.AddCommand<SyncTypeAndFileCommand>("sync-type-file")
+        .WithDescription("Synchronize type name and file name");
 });
 
 return app.Run(args);
