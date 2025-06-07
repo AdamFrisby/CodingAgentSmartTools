@@ -1806,4 +1806,56 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ImplementInterfaceMembersImplicitCommand_ShouldImplementInterface()
+    {
+        // Arrange
+        var testCodeWithInterface = @"using System;
+
+namespace TestNamespace
+{
+    public interface ICalculator
+    {
+        int Add(int a, int b);
+        string Name { get; set; }
+    }
+    
+    public class Calculator : ICalculator
+    {
+        // Interface members not implemented yet
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithInterface);
+
+        var command = new ImplementInterfaceMembersImplicitCommand();
+        var settings = new ImplementInterfaceMembersImplicitCommandSettings
+        {
+            FilePath = csFile,
+            ClassName = "Calculator",
+            InterfaceName = "ICalculator",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("int Add", modifiedCode); // Should have implementation
+        Assert.Contains("string Name", modifiedCode); // Should have property implementation
+        Assert.Contains("NotImplementedException", modifiedCode); // Should throw NotImplementedException
+        Assert.DoesNotContain("ICalculator.Add", modifiedCode); // Should NOT have explicit interface naming
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

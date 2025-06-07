@@ -148,6 +148,9 @@ app.Configure(config =>
         
     config.AddCommand<ImplementInterfaceMembersExplicitCommand>("implement-interface-explicit")
         .WithDescription("Implement all interface members explicitly");
+        
+    config.AddCommand<ImplementInterfaceMembersImplicitCommand>("implement-interface-implicit")
+        .WithDescription("Implement all interface members implicitly");
 });
 
 return app.Run(args);
