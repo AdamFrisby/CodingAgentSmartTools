@@ -924,4 +924,48 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertClassToRecordCommand_ShouldConvertClassToRecord()
+    {
+        // Arrange
+        var testCodeWithClass = @"using System;
+
+namespace TestNamespace
+{
+    public class Person
+    {
+        public string Name { get; set; }
+        public int Age { get; set; }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithClass);
+
+        var command = new ConvertClassToRecordCommand();
+        var settings = new ConvertClassToRecordCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 5, // Line with class declaration
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("public record Person", modifiedCode);
+        Assert.DoesNotContain("public class Person", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

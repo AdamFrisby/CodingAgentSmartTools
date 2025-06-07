@@ -67,6 +67,9 @@ app.Configure(config =>
         
     config.AddCommand<IntroduceLocalVariableCommand>("introduce-local-variable")
         .WithDescription("Introduce local variable for expression");
+        
+    config.AddCommand<ConvertClassToRecordCommand>("convert-class-record")
+        .WithDescription("Convert class to record");
 });
 
 return app.Run(args);
