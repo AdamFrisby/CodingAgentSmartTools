@@ -2138,4 +2138,57 @@ namespace TestNamespace
         // Cleanup
         File.Delete(correctFile);
     }
+
+    [Fact]
+    public async Task UseRecursivePatternsCommand_ShouldApplyRecursivePatterns()
+    {
+        // Arrange
+        var testCodeWithPatterns = @"using System;
+
+namespace TestNamespace
+{
+    public class PatternExample
+    {
+        public void TestMethod(string input)
+        {
+            switch (input)
+            {
+                case ""hello"":
+                    Console.WriteLine(""Short greeting"");
+                    break;
+                case ""goodbye"":
+                    Console.WriteLine(""Farewell"");
+                    break;
+            }
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithPatterns);
+
+        var command = new UseRecursivePatternsCommand();
+        var settings = new UseRecursivePatternsCommandSettings
+        {
+            FilePath = csFile,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The command should have applied some form of pattern analysis
+        Assert.Contains("could use recursive patterns", modifiedCode); // Should have added comment
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

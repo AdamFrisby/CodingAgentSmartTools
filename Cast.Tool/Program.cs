@@ -166,6 +166,9 @@ app.Configure(config =>
         
     config.AddCommand<SyncTypeAndFileCommand>("sync-type-file")
         .WithDescription("Synchronize type name and file name");
+        
+    config.AddCommand<UseRecursivePatternsCommand>("use-recursive-patterns")
+        .WithDescription("Convert to recursive patterns for advanced pattern matching");
 });
 
 return app.Run(args);
