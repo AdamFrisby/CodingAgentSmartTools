@@ -732,4 +732,53 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertStringLiteralCommand_ShouldConvertToVerbatim()
+    {
+        // Arrange
+        var testCodeWithRegularString = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            string path = ""C:\\Users\\Test\\file.txt"";
+            Console.WriteLine(path);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithRegularString);
+
+        var command = new ConvertStringLiteralCommand();
+        var settings = new ConvertStringLiteralCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with string literal
+            ColumnNumber = 27, // Position of string
+            Target = "verbatim",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("@\"", modifiedCode);
+        Assert.Contains("C:\\Users\\Test\\file.txt", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

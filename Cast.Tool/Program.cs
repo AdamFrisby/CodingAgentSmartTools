@@ -55,6 +55,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertIfToSwitchCommand>("convert-if-switch")
         .WithDescription("Convert between if-else-if and switch statements");
+        
+    config.AddCommand<ConvertStringLiteralCommand>("convert-string-literal")
+        .WithDescription("Convert between regular and verbatim string literals");
 });
 
 return app.Run(args);
