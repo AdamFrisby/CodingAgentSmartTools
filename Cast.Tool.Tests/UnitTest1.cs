@@ -672,4 +672,64 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertIfToSwitchCommand_ShouldConvertIfToSwitch()
+    {
+        // Arrange
+        var testCodeWithIfElse = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod(int value)
+        {
+            if (value == 1)
+            {
+                Console.WriteLine(""One"");
+            }
+            else if (value == 2)
+            {
+                Console.WriteLine(""Two"");
+            }
+            else
+            {
+                Console.WriteLine(""Other"");
+            }
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithIfElse);
+
+        var command = new ConvertIfToSwitchCommand();
+        var settings = new ConvertIfToSwitchCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with if statement
+            ColumnNumber = 12,
+            Target = "switch",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("switch", modifiedCode);
+        Assert.Contains("case", modifiedCode);
+        Assert.Contains("default:", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

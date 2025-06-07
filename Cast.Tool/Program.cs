@@ -52,6 +52,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertGetMethodToPropertyCommand>("convert-get-method")
         .WithDescription("Convert between Get method and property");
+        
+    config.AddCommand<ConvertIfToSwitchCommand>("convert-if-switch")
+        .WithDescription("Convert between if-else-if and switch statements");
 });
 
 return app.Run(args);
