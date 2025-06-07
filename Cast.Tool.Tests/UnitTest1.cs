@@ -571,4 +571,54 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertCastToAsExpressionCommand_ShouldConvertCastToAs()
+    {
+        // Arrange
+        var testCodeWithCast = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            object obj = ""hello"";
+            string str = (string)obj;
+            Console.WriteLine(str);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithCast);
+
+        var command = new ConvertCastToAsExpressionCommand();
+        var settings = new ConvertCastToAsExpressionCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 10, // Line with cast
+            ColumnNumber = 26, // Position of cast
+            Target = "as",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("obj as string", modifiedCode);
+        Assert.DoesNotContain("(string)obj", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

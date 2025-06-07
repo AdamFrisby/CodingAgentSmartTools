@@ -46,6 +46,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertAnonymousTypeToClassCommand>("convert-anonymous-type")
         .WithDescription("Convert anonymous type to class");
+        
+    config.AddCommand<ConvertCastToAsExpressionCommand>("convert-cast-as")
+        .WithDescription("Convert between cast and as expressions");
 });
 
 return app.Run(args);
