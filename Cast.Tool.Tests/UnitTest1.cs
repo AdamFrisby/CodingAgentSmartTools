@@ -1174,4 +1174,55 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task EncapsulateFieldCommand_ShouldConvertFieldToProperty()
+    {
+        // Arrange
+        var testCodeWithField = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public string name;
+        public int age;
+        
+        public void Test()
+        {
+            Console.WriteLine(name);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithField);
+
+        var command = new EncapsulateFieldCommand();
+        var settings = new EncapsulateFieldCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 7, // Line with public string name;
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("private string _name;", modifiedCode);
+        Assert.Contains("public string Name", modifiedCode);
+        Assert.Contains("get", modifiedCode);
+        Assert.Contains("set", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

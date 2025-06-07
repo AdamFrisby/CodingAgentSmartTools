@@ -82,6 +82,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertToInterpolatedStringCommand>("convert-to-interpolated")
         .WithDescription("Convert string concatenation to interpolated string");
+        
+    config.AddCommand<EncapsulateFieldCommand>("encapsulate-field")
+        .WithDescription("Encapsulate field as property");
 });
 
 return app.Run(args);
