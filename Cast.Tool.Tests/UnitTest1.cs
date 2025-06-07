@@ -1073,4 +1073,52 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertStringFormatCommand_ShouldConvertToInterpolatedString()
+    {
+        // Arrange
+        var testCodeWithStringFormat = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void Test()
+        {
+            string message = string.Format(""Hello {0}, you are {1} years old"", ""John"", 25);
+            Console.WriteLine(message);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithStringFormat);
+
+        var command = new ConvertStringFormatCommand();
+        var settings = new ConvertStringFormatCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with string.Format
+            ColumnNumber = 30, // Position in string.Format call
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("$\"", modifiedCode); // Should contain interpolated string
+        Assert.DoesNotContain("string.Format", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

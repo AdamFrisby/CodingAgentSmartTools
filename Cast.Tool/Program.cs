@@ -76,6 +76,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertNumericLiteralCommand>("convert-numeric-literal")
         .WithDescription("Convert numeric literal between decimal, hexadecimal, and binary formats");
+        
+    config.AddCommand<ConvertStringFormatCommand>("convert-string-format")
+        .WithDescription("Convert String.Format calls to interpolated strings");
 });
 
 return app.Run(args);
