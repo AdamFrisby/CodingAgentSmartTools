@@ -145,6 +145,9 @@ app.Configure(config =>
         
     config.AddCommand<ExtractLocalFunctionCommand>("extract-local-function")
         .WithDescription("Extract local function from code block");
+        
+    config.AddCommand<ImplementInterfaceMembersExplicitCommand>("implement-interface-explicit")
+        .WithDescription("Implement all interface members explicitly");
 });
 
 return app.Run(args);
