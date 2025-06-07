@@ -85,6 +85,9 @@ app.Configure(config =>
         
     config.AddCommand<EncapsulateFieldCommand>("encapsulate-field")
         .WithDescription("Encapsulate field as property");
+        
+    config.AddCommand<GenerateDefaultConstructorCommand>("generate-default-constructor")
+        .WithDescription("Generate default constructor for class or struct");
 });
 
 return app.Run(args);

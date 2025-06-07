@@ -1225,4 +1225,58 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task GenerateDefaultConstructorCommand_ShouldAddDefaultConstructor()
+    {
+        // Arrange
+        var testCodeWithoutConstructor = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public string Name { get; set; }
+        public int Age { get; set; }
+        
+        public void Test()
+        {
+            Console.WriteLine(Name);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithoutConstructor);
+
+        var command = new GenerateDefaultConstructorCommand();
+        var settings = new GenerateDefaultConstructorCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 5, // Line with class declaration
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("public", modifiedCode);
+        Assert.Contains("Example", modifiedCode);
+        Assert.Contains("()", modifiedCode);
+        // Check that constructor was added
+        var constructorPattern = "Example";
+        var constructorCount = modifiedCode.Split(constructorPattern, StringSplitOptions.RemoveEmptyEntries).Length - 1;
+        Assert.True(constructorCount >= 2); // Class name + constructor
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
