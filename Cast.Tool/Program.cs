@@ -97,6 +97,15 @@ app.Configure(config =>
         
     config.AddCommand<IntroduceParameterCommand>("introduce-parameter")
         .WithDescription("Introduce parameter to method");
+        
+    config.AddCommand<IntroduceUsingStatementCommand>("introduce-using-statement")
+        .WithDescription("Introduce using statement for disposable objects");
+        
+    config.AddCommand<GenerateParameterCommand>("generate-parameter")
+        .WithDescription("Generate parameter for method");
+        
+    config.AddCommand<InlineTemporaryVariableCommand>("inline-temporary")
+        .WithDescription("Inline temporary variable");
 });
 
 return app.Run(args);
