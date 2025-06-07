@@ -28,6 +28,9 @@ app.Configure(config =>
         
     config.AddCommand<AddConstructorParametersCommand>("add-constructor-params")
         .WithDescription("Add constructor parameters from class members");
+        
+    config.AddCommand<AddDebuggerDisplayCommand>("add-debugger-display")
+        .WithDescription("Add DebuggerDisplay attribute to a class");
 });
 
 return app.Run(args);
