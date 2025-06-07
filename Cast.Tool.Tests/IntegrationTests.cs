@@ -94,4 +94,55 @@ namespace MyProject
         // Assert - If we got here without exception, the configuration is valid
         Assert.True(true);
     }
+    
+    [Fact]
+    public async Task ConvertTupleToStruct_ShouldWork()
+    {
+        // Arrange - target tuple type declaration
+        var testCode = @"using System;
+
+namespace MyProject
+{
+    public class Example
+    {
+        public (int x, int y) GetCoordinates()
+        {
+            return (10, 20);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        try
+        {
+            // Act: Convert tuple type to struct - target the tuple type declaration (int x, int y)
+            var command = new Commands.ConvertTupleToStructCommand();
+            var settings = new Commands.ConvertTupleToStructCommand.Settings
+            {
+                FilePath = csFile,
+                StructName = "Point",
+                Line = 7, // Line with public (int x, int y) GetCoordinates()
+                Column = 15, // Position of the tuple type
+                DryRun = false
+            };
+
+            var result = command.Execute(null!, settings);
+            Assert.Equal(0, result);
+
+            // Verify the struct was created and tuple type was replaced
+            var modifiedCode = await File.ReadAllTextAsync(csFile);
+            Assert.Contains("public struct Point", modifiedCode);
+            Assert.Contains("public Point GetCoordinates()", modifiedCode);
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(csFile))
+                File.Delete(csFile);
+        }
+    }
 }

@@ -133,6 +133,9 @@ app.Configure(config =>
         
     config.AddCommand<GenerateComparisonOperatorsCommand>("generate-comparison-operators")
         .WithDescription("Generate comparison operators for class");
+        
+    config.AddCommand<ConvertTupleToStructCommand>("convert-tuple-struct")
+        .WithDescription("Convert tuple to struct");
 });
 
 return app.Run(args);
