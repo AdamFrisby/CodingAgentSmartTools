@@ -169,6 +169,12 @@ app.Configure(config =>
         
     config.AddCommand<UseRecursivePatternsCommand>("use-recursive-patterns")
         .WithDescription("Convert to recursive patterns for advanced pattern matching");
+        
+    config.AddCommand<RemoveUnusedUsingsCommand>("remove-unused-usings")
+        .WithDescription("Remove unused using statements from the file");
+        
+    config.AddCommand<SortUsingsCommand>("sort-usings")
+        .WithDescription("Sort using statements alphabetically with optional System separation");
 });
 
 return app.Run(args);
