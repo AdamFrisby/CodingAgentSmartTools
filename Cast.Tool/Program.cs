@@ -34,6 +34,9 @@ app.Configure(config =>
         
     config.AddCommand<AddFileHeaderCommand>("add-file-header")
         .WithDescription("Add a file header comment to the source file");
+        
+    config.AddCommand<AddNamedArgumentCommand>("add-named-argument")
+        .WithDescription("Add named arguments to method calls");
 });
 
 return app.Run(args);
