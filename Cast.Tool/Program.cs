@@ -139,6 +139,9 @@ app.Configure(config =>
         
     config.AddCommand<ExtractBaseClassCommand>("extract-base-class")
         .WithDescription("Extract base class from existing class");
+        
+    config.AddCommand<ExtractInterfaceCommand>("extract-interface")
+        .WithDescription("Extract interface from existing class");
 });
 
 return app.Run(args);

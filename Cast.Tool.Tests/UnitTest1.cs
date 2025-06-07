@@ -1635,4 +1635,74 @@ namespace TestNamespace
         if (File.Exists(baseClassPath))
             File.Delete(baseClassPath);
     }
+
+    [Fact]
+    public async Task ExtractInterfaceCommand_ShouldExtractInterface()
+    {
+        // Arrange
+        var testCodeWithClass = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+        
+        public int Subtract(int a, int b)
+        {
+            return a - b;
+        }
+        
+        public string Name { get; set; }
+        
+        private void InternalMethod()
+        {
+            // Private method - should not be in interface
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithClass);
+
+        var command = new ExtractInterfaceCommand();
+        var settings = new ExtractInterfaceCommandSettings
+        {
+            FilePath = csFile,
+            ClassName = "Calculator",
+            InterfaceName = "ICalculator",
+            Members = "Add,Name", // Only specific members
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains(":ICalculator", modifiedCode); // Should implement interface
+        
+        // Check interface file was created
+        var interfacePath = Path.Combine(Path.GetDirectoryName(outputFile)!, "ICalculator.cs");
+        Assert.True(File.Exists(interfacePath));
+        var interfaceCode = await File.ReadAllTextAsync(interfacePath);
+        Assert.Contains("public interface ICalculator", interfaceCode);
+        Assert.Contains("int Add(int a, int b);", interfaceCode); // Should have Add method
+        Assert.Contains("string Name", interfaceCode); // Should have Name property
+        Assert.DoesNotContain("Subtract", interfaceCode); // Should not have Subtract (not in members list)
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+        if (File.Exists(interfacePath))
+            File.Delete(interfacePath);
+    }
 }
