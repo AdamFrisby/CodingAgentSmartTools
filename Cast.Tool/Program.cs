@@ -43,6 +43,9 @@ app.Configure(config =>
         
     config.AddCommand<ChangeMethodSignatureCommand>("change-method-signature")
         .WithDescription("Change method signature (parameters and return type)");
+        
+    config.AddCommand<ConvertAnonymousTypeToClassCommand>("convert-anonymous-type")
+        .WithDescription("Convert anonymous type to class");
 });
 
 return app.Run(args);

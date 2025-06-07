@@ -520,4 +520,55 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertAnonymousTypeToClassCommand_ShouldCreateClass()
+    {
+        // Arrange
+        var testCodeWithAnonymousType = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var person = new { Name = ""John"", Age = 30 };
+            Console.WriteLine($""{person.Name} is {person.Age} years old"");
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithAnonymousType);
+
+        var command = new ConvertAnonymousTypeToClassCommand();
+        var settings = new ConvertAnonymousTypeToClassCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with anonymous object  
+            ColumnNumber = 26, // Position of "new"
+            ClassName = "Person",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("classPerson", modifiedCode);
+        Assert.Contains("objectName", modifiedCode);
+        Assert.Contains("objectAge", modifiedCode);
+        Assert.Contains("new Person(", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
