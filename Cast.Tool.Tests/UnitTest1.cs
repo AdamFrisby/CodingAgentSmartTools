@@ -1325,4 +1325,57 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task InvertIfStatementCommand_ShouldInvertCondition()
+    {
+        // Arrange
+        var testCodeWithIf = @"using System;
+
+namespace TestNamespace
+{
+    public class Example
+    {
+        public void Test(bool condition)
+        {
+            if (condition == true)
+            {
+                Console.WriteLine(""True"");
+            }
+            else
+            {
+                Console.WriteLine(""False"");
+            }
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithIf);
+
+        var command = new InvertIfStatementCommand();
+        var settings = new InvertIfStatementCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with if statement
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("!=", modifiedCode); // Should have inverted condition
+        Assert.Contains("False", modifiedCode); // Should contain both branches
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }

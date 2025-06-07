@@ -91,6 +91,9 @@ app.Configure(config =>
         
     config.AddCommand<MakeMemberStaticCommand>("make-member-static")
         .WithDescription("Make member static");
+        
+    config.AddCommand<InvertIfStatementCommand>("invert-if")
+        .WithDescription("Invert if statement condition");
 });
 
 return app.Run(args);
