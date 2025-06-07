@@ -31,6 +31,9 @@ app.Configure(config =>
         
     config.AddCommand<AddDebuggerDisplayCommand>("add-debugger-display")
         .WithDescription("Add DebuggerDisplay attribute to a class");
+        
+    config.AddCommand<AddFileHeaderCommand>("add-file-header")
+        .WithDescription("Add a file header comment to the source file");
 });
 
 return app.Run(args);

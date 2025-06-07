@@ -136,6 +136,50 @@ namespace TestNamespace
     }
 
     [Fact]
+    public async Task AddFileHeaderCommand_ShouldAddHeader()
+    {
+        // Arrange
+        var testCodeWithoutHeader = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public string Name { get; set; }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithoutHeader);
+
+        var command = new AddFileHeaderCommand();
+        var settings = new AddFileHeaderCommand.Settings
+        {
+            FilePath = csFile,
+            Copyright = "Test Company",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("Copyright (c)", modifiedCode);
+        Assert.Contains("Test Company", modifiedCode);
+        Assert.Contains("All rights reserved", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
     public async Task AddDebuggerDisplayCommand_ShouldAddAttribute()
     {
         // Arrange
