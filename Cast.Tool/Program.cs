@@ -58,6 +58,12 @@ app.Configure(config =>
         
     config.AddCommand<ConvertStringLiteralCommand>("convert-string-literal")
         .WithDescription("Convert between regular and verbatim string literals");
+        
+    config.AddCommand<UseExplicitTypeCommand>("use-explicit-type")
+        .WithDescription("Use explicit type (replace var)");
+        
+    config.AddCommand<UseImplicitTypeCommand>("use-implicit-type")
+        .WithDescription("Use implicit type (var)");
 });
 
 return app.Run(args);

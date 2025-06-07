@@ -781,4 +781,100 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task UseExplicitTypeCommand_ShouldReplaceVar()
+    {
+        // Arrange
+        var testCodeWithVar = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            var number = 42;
+            var text = ""hello"";
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithVar);
+
+        var command = new UseExplicitTypeCommand();
+        var settings = new UseExplicitTypeCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with var number
+            ColumnNumber = 12,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("int number", modifiedCode);
+        Assert.DoesNotContain("var number", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task UseImplicitTypeCommand_ShouldReplaceExplicitType()
+    {
+        // Arrange
+        var testCodeWithExplicitType = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            int number = 42;
+            string text = ""hello"";
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithExplicitType);
+
+        var command = new UseImplicitTypeCommand();
+        var settings = new UseImplicitTypeCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with int number
+            ColumnNumber = 12,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("var number", modifiedCode);
+        Assert.DoesNotContain("int number", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
