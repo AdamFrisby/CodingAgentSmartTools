@@ -100,25 +100,6 @@ The `cast` tool provides command-line access to 56 C# refactoring operations usi
 - **add-await** - Add await to an async call
 - **add-debugger-display** - Add DebuggerDisplay attribute to a class
 
-### Basic Usage Examples
-
-```bash
-# Add a using statement
-dotnet run --project Cast.Tool -- add-using MyFile.cs "System.Collections.Generic" [--dry-run]
-
-# Rename a symbol at specific location
-dotnet run --project Cast.Tool -- rename MyFile.cs "oldName" "newName" --line 10 [--column 5] [--dry-run]
-
-# Extract method from selected code
-dotnet run --project Cast.Tool -- extract-method MyFile.cs "NewMethodName" --line 10 [--end-line 15] [--dry-run]
-
-# Convert between auto and full properties
-dotnet run --project Cast.Tool -- convert-auto-property MyFile.cs --line 8 [--to full|auto] [--dry-run]
-
-# Add explicit cast to expression
-dotnet run --project Cast.Tool -- add-explicit-cast MyFile.cs "int" --line 12 [--column 20] [--dry-run]
-```
-
 ### Common Options
 
 - `--line <number>`: Line number (1-based) where the refactoring should be applied
