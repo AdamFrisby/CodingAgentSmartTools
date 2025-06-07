@@ -160,6 +160,9 @@ app.Configure(config =>
         
     config.AddCommand<MoveTypeToNamespaceFolderCommand>("move-type-to-namespace")
         .WithDescription("Move type to namespace and corresponding folder");
+        
+    config.AddCommand<PullMembersUpCommand>("pull-members-up")
+        .WithDescription("Pull members up to base type or interface");
 });
 
 return app.Run(args);

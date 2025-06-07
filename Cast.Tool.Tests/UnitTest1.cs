@@ -2029,4 +2029,66 @@ namespace MyProject
                 Directory.Delete(servicesDir);
         }
     }
+
+    [Fact]
+    public async Task PullMembersUpCommand_ShouldPullMembersUp()
+    {
+        // Arrange
+        var testCodeWithInheritance = @"using System;
+
+namespace TestNamespace
+{
+    public class Animal
+    {
+        public virtual string Name { get; set; }
+    }
+    
+    public class Dog : Animal
+    {
+        public string Breed { get; set; }
+        
+        public void Bark()
+        {
+            Console.WriteLine(""Woof!"");
+        }
+        
+        public void Run()
+        {
+            Console.WriteLine(""Running..."");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithInheritance);
+
+        var command = new PullMembersUpCommand();
+        var settings = new PullMembersUpCommandSettings
+        {
+            FilePath = csFile,
+            SourceType = "Dog",
+            TargetType = "Animal",
+            Members = "Bark,Run", // Pull up specific members
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        
+        // Check that members were moved from Dog to Animal
+        Assert.Contains("virtualvoid Bark()", modifiedCode); // Should have virtual version in Animal (note spacing)
+        Assert.Contains("virtualvoid Run()", modifiedCode); // Should have virtual version in Animal (note spacing)
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
