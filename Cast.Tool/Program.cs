@@ -73,6 +73,9 @@ app.Configure(config =>
         
     config.AddCommand<ConvertLocalFunctionToMethodCommand>("convert-local-function")
         .WithDescription("Convert local function to method");
+        
+    config.AddCommand<ConvertNumericLiteralCommand>("convert-numeric-literal")
+        .WithDescription("Convert numeric literal between decimal, hexadecimal, and binary formats");
 });
 
 return app.Run(args);

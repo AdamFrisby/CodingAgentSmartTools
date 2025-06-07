@@ -1024,4 +1024,53 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task ConvertNumericLiteralCommand_ShouldConvertDecimalToHex()
+    {
+        // Arrange
+        var testCodeWithNumericLiteral = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public void Test()
+        {
+            int value = 255;
+            Console.WriteLine(value);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithNumericLiteral);
+
+        var command = new ConvertNumericLiteralCommand();
+        var settings = new ConvertNumericLiteralCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with int value = 255;
+            ColumnNumber = 25, // Position of 255 (adjusted)
+            TargetFormat = "hex",
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("0xFF", modifiedCode);
+        Assert.DoesNotContain("int value = 255;", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
