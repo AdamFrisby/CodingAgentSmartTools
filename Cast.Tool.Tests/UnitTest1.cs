@@ -136,6 +136,58 @@ namespace TestNamespace
     }
 
     [Fact]
+    public async Task AddAwaitCommand_ShouldAddAwait()
+    {
+        // Arrange
+        var testCodeWithAsync = @"using System;
+using System.Threading.Tasks;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public async Task TestMethod()
+        {
+            var result = SomeAsyncMethod();
+        }
+        
+        private async Task<int> SomeAsyncMethod()
+        {
+            return 42;
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithAsync);
+
+        var command = new AddAwaitCommand();
+        var settings = new AddAwaitCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 10, // Line with SomeAsyncMethod()
+            ColumnNumber = 25, // Approximate position of method call
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("await SomeAsyncMethod()", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
     public async Task RenameCommand_DryRun_ShouldIndicateChanges()
     {
         // Arrange

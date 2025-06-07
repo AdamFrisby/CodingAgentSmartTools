@@ -22,6 +22,9 @@ app.Configure(config =>
         
     config.AddCommand<AddExplicitCastCommand>("add-explicit-cast")
         .WithDescription("Add explicit cast to an expression");
+        
+    config.AddCommand<AddAwaitCommand>("add-await")
+        .WithDescription("Add await to an async call");
 });
 
 return app.Run(args);
