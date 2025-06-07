@@ -151,6 +151,9 @@ app.Configure(config =>
         
     config.AddCommand<ImplementInterfaceMembersImplicitCommand>("implement-interface-implicit")
         .WithDescription("Implement all interface members implicitly");
+        
+    config.AddCommand<InlineMethodCommand>("inline-method")
+        .WithDescription("Inline a method by replacing its calls with the method body");
 });
 
 return app.Run(args);

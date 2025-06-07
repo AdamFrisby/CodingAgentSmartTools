@@ -1858,4 +1858,55 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task InlineMethodCommand_ShouldInlineMethod()
+    {
+        // Arrange
+        var testCodeWithMethod = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Double(int x) => x * 2;
+        
+        public int Calculate()
+        {
+            int value = 5;
+            int result = Double(value);
+            return result;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithMethod);
+
+        var command = new InlineMethodCommand();
+        var settings = new InlineMethodCommandSettings
+        {
+            FilePath = csFile,
+            MethodName = "Double",
+            LineNumber = 7, // Line where Double method is defined
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.DoesNotContain("Double(value)", modifiedCode); // Call should be replaced
+        Assert.Contains("value*", modifiedCode); // Should have inlined expression (checking for value* pattern)
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
