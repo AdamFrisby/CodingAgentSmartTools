@@ -2677,4 +2677,293 @@ namespace TestNamespace
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+
+    [Fact]
+    public async Task InvertConditionalExpressionsCommand_ShouldInvertCondition()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            bool isEnabled = true;
+            var result = isEnabled ? ""Enabled"" : ""Disabled"";
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new InvertConditionalExpressionsCommand();
+        var settings = new InvertConditionalExpressionsCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 10, // Line with ternary operator
+            ColumnNumber = 25, // Position of ternary operator
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The condition should be inverted
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task ReverseForStatementCommand_ShouldReverseLoop()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine(i);
+            }
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new ReverseForStatementCommand();
+        var settings = new ReverseForStatementCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with for loop
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The loop should be reversed (e.g., i = 9; i >= 0; i--)
+        Assert.Contains("i--", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task SplitOrMergeIfStatementsCommand_ShouldMergeIfStatements()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod(bool condition1, bool condition2)
+        {
+            if (condition1)
+            {
+                if (condition2)
+                {
+                    Console.WriteLine(""Both true"");
+                }
+            }
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new SplitOrMergeIfStatementsCommand();
+        var settings = new SplitOrMergeIfStatementsCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with first if statement
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // Should merge nested if statements into a single condition
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task SyncNamespaceWithFolderCommand_ShouldSyncNamespace()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace WrongNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            Console.WriteLine(""Hello"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new SyncNamespaceWithFolderCommand();
+        var settings = new SyncNamespaceWithFolderCommand.Settings
+        {
+            FilePath = csFile,
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // The namespace should be updated to match the folder structure
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task GenerateParameterCommand_ShouldGenerateParameter()
+    {
+        // Arrange - method with a hardcoded argument that could be parameterized
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            Console.WriteLine(""Hello World"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new GenerateParameterCommand();
+        var settings = new GenerateParameterCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 9, // Line with Console.WriteLine call
+            ColumnNumber = 35, // Position of the "Hello World" argument
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        // Should add a parameter to the method signature and replace the hardcoded argument
+        Assert.NotEqual(testCode, modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
+
+    [Fact]
+    public async Task ConvertTupleToStructCommand_ShouldConvertTupleToStruct()
+    {
+        // Arrange - similar to the integration test but as a unit test
+        var testCode = @"using System;
+
+namespace MyProject
+{
+    public class Example
+    {
+        public (int x, int y) GetCoordinates()
+        {
+            return (10, 20);
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var outputFile = Path.ChangeExtension(Path.GetTempFileName(), ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new ConvertTupleToStructCommand();
+        var settings = new ConvertTupleToStructCommand.Settings
+        {
+            FilePath = csFile,
+            StructName = "Point",
+            Line = 7, // Line with tuple type
+            Column = 15, // Position of tuple
+            OutputPath = outputFile,
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        var modifiedCode = await File.ReadAllTextAsync(outputFile);
+        Assert.Contains("public struct Point", modifiedCode);
+        Assert.Contains("public Point GetCoordinates()", modifiedCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        File.Delete(outputFile);
+    }
 }
