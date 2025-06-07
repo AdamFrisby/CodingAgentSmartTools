@@ -157,6 +157,9 @@ app.Configure(config =>
         
     config.AddCommand<MoveTypeToMatchingFileCommand>("move-type-to-file")
         .WithDescription("Move type to its own matching file");
+        
+    config.AddCommand<MoveTypeToNamespaceFolderCommand>("move-type-to-namespace")
+        .WithDescription("Move type to namespace and corresponding folder");
 });
 
 return app.Run(args);

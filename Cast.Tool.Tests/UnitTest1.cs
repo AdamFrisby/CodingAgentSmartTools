@@ -1967,4 +1967,66 @@ namespace TestNamespace
         if (File.Exists(loggerFilePath))
             File.Delete(loggerFilePath);
     }
+
+    [Fact]
+    public async Task MoveTypeToNamespaceFolderCommand_ShouldMoveTypeToNamespace()
+    {
+        // Arrange
+        var testCodeWithType = @"using System;
+
+namespace MyProject
+{
+    public class UserService
+    {
+        public void CreateUser(string name) => Console.WriteLine($""Creating user: {name}"");
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        var tempDir = Path.GetDirectoryName(csFile)!;
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCodeWithType);
+
+        var command = new MoveTypeToNamespaceFolderCommand();
+        var settings = new MoveTypeToNamespaceFolderCommandSettings
+        {
+            FilePath = csFile,
+            TypeName = "UserService",
+            TargetNamespace = "MyProject.Services.User",
+            TargetFolder = Path.Combine(tempDir, "Services", "User"),
+            DryRun = false
+        };
+
+        // Act
+        var result = command.Execute(null!, settings);
+
+        // Assert
+        Assert.Equal(0, result);
+        
+        // Check that UserService was removed from original file
+        var modifiedOriginalCode = await File.ReadAllTextAsync(csFile);
+        Assert.DoesNotContain("public class UserService", modifiedOriginalCode);
+        
+        // Check that UserService.cs was created in the target folder
+        var targetFilePath = Path.Combine(tempDir, "Services", "User", "UserService.cs");
+        Assert.True(File.Exists(targetFilePath));
+        var userServiceCode = await File.ReadAllTextAsync(targetFilePath);
+        Assert.Contains("public class UserService", userServiceCode);
+        Assert.Contains("namespace MyProject.Services.User", userServiceCode);
+
+        // Cleanup
+        File.Delete(csFile);
+        if (File.Exists(targetFilePath))
+        {
+            File.Delete(targetFilePath);
+            // Clean up directories if empty
+            var userDir = Path.GetDirectoryName(targetFilePath)!;
+            if (Directory.Exists(userDir) && !Directory.EnumerateFileSystemEntries(userDir).Any())
+                Directory.Delete(userDir);
+            var servicesDir = Path.GetDirectoryName(userDir)!;
+            if (Directory.Exists(servicesDir) && !Directory.EnumerateFileSystemEntries(servicesDir).Any())
+                Directory.Delete(servicesDir);
+        }
+    }
 }
