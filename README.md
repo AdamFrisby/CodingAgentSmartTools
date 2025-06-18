@@ -16,6 +16,29 @@ cd CodingAgentSmartTools
 dotnet build
 ```
 
+## Testing
+
+To verify the tool works correctly, run the integration test scripts:
+
+**Linux/macOS:**
+```bash
+./test-simple.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+.\test-simple.ps1
+```
+
+These scripts demonstrate the Cast Tool's functionality by:
+1. Building the project to an executable
+2. Creating a copy of the codebase
+3. Using the executable to analyze and modify the copy
+4. Verifying expected changes occur
+5. Confirming the modified copy still builds successfully
+
+The integration tests showcase core functionality including adding using statements, refactoring methods to properties, sorting using statements, and analyzing code symbols.
+
 ## Usage
 
 The `cast` tool provides command-line access to 56 C# refactoring operations using the Roslyn compiler services.
