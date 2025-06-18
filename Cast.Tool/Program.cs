@@ -175,6 +175,22 @@ app.Configure(config =>
         
     config.AddCommand<SortUsingsCommand>("sort-usings")
         .WithDescription("Sort using statements alphabetically with optional System separation");
+        
+    // Analysis commands
+    config.AddCommand<FindSymbolsCommand>("find-symbols")
+        .WithDescription("Find symbols matching a pattern (including partial matches)");
+        
+    config.AddCommand<FindReferencesCommand>("find-references")
+        .WithDescription("Find all references to a symbol at the specified location");
+        
+    config.AddCommand<FindUsagesCommand>("find-usages")
+        .WithDescription("Find all usages of a symbol, type, or member");
+        
+    config.AddCommand<FindDependenciesCommand>("find-dependencies")
+        .WithDescription("Find dependencies and create a dependency graph from a type");
+        
+    config.AddCommand<FindDuplicateCodeCommand>("find-duplicate-code")
+        .WithDescription("Find code that is substantially similar to existing code");
 });
 
 return app.Run(args);
