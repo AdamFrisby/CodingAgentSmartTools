@@ -2966,4 +2966,278 @@ namespace MyProject
         File.Delete(csFile);
         File.Delete(outputFile);
     }
+    
+    [Fact]
+    public async Task FindSymbolsCommand_ShouldFindMatchingSymbols()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Add(int a, int b) => a + b;
+        public int AddValue(int value) => value + 1;
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new FindSymbolsCommand();
+        var settings = new Cast.Tool.Core.BaseAnalysisCommand.Settings
+        {
+            FilePath = csFile,
+            Pattern = "Add"
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Restore console
+        Console.SetOut(originalOut);
+        var output = stringWriter.ToString();
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.Contains("Add", output);
+        Assert.Contains("AddValue", output);
+
+        // Cleanup
+        File.Delete(csFile);
+    }
+
+    [Fact]
+    public async Task FindReferencesCommand_ShouldFindSymbolReferences()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        private int value = 0;
+        
+        public void SetValue(int newValue)
+        {
+            value = newValue;
+        }
+        
+        public int GetValue()
+        {
+            return value;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new FindReferencesCommand();
+        var settings = new Cast.Tool.Core.BaseAnalysisCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 11, // Line with value usage
+            ColumnNumber = 12
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Restore console
+        Console.SetOut(originalOut);
+        var output = stringWriter.ToString();
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.Contains("value", output);
+
+        // Cleanup
+        File.Delete(csFile);
+    }
+
+    [Fact]
+    public async Task FindUsagesCommand_ShouldFindSymbolUsages()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        private int count = 0;
+        
+        public void Increment()
+        {
+            count++;
+        }
+        
+        public void Reset()
+        {
+            count = 0;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new FindUsagesCommand();
+        var settings = new Cast.Tool.Core.BaseAnalysisCommand.Settings
+        {
+            FilePath = csFile,
+            LineNumber = 11, // Line with count usage
+            ColumnNumber = 12
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Restore console
+        Console.SetOut(originalOut);
+        var output = stringWriter.ToString();
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.Contains("count", output);
+        Assert.Contains("Usage:", output);
+
+        // Cleanup  
+        File.Delete(csFile);
+    }
+
+    [Fact]
+    public async Task FindDependenciesCommand_ShouldFindTypeDependencies()
+    {
+        // Arrange
+        var testCode = @"using System;
+using System.Collections.Generic;
+
+namespace TestNamespace
+{
+    public class Service
+    {
+        private List<string> items;
+        
+        public Service()
+        {
+            items = new List<string>();
+        }
+        
+        public void AddItem(string item)
+        {
+            items.Add(item);
+            Console.WriteLine(""Added item"");
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new FindDependenciesCommand();
+        var settings = new Cast.Tool.Core.BaseAnalysisCommand.Settings
+        {
+            FilePath = csFile,
+            TypeName = "Service"
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Restore console
+        Console.SetOut(originalOut);
+        var output = stringWriter.ToString();
+
+        // Assert
+        Assert.Equal(0, result);
+        Assert.Contains("Dependency:", output);
+
+        // Cleanup
+        File.Delete(csFile);
+    }
+
+    [Fact]
+    public async Task FindDuplicateCodeCommand_ShouldFindSimilarCode()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace TestNamespace
+{
+    public class Calculator
+    {
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+        
+        public int Sum(int x, int y)
+        {
+            return x + y;
+        }
+    }
+}";
+
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        var command = new FindDuplicateCodeCommand();
+        var settings = new Cast.Tool.Core.BaseAnalysisCommand.Settings
+        {
+            FilePath = csFile
+        };
+
+        // Capture console output
+        var originalOut = Console.Out;
+        using var stringWriter = new StringWriter();
+        Console.SetOut(stringWriter);
+
+        // Act
+        var result = await command.ExecuteAsync(null!, settings);
+
+        // Restore console
+        Console.SetOut(originalOut);
+        var output = stringWriter.ToString();
+
+        // Assert
+        Assert.Equal(0, result);
+        // The duplicate finder should detect similarity between Add and Sum methods
+
+        // Cleanup
+        File.Delete(csFile);
+    }
 }

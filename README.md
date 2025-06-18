@@ -100,6 +100,15 @@ The `cast` tool provides command-line access to 56 C# refactoring operations usi
 - **add-await** - Add await to an async call
 - **add-debugger-display** - Add DebuggerDisplay attribute to a class
 
+#### Code Analysis Tools
+- **find-symbols** - Find symbols matching a pattern (including partial matches)
+- **find-references** - Find all references to a symbol at the specified location  
+- **find-usages** - Find all usages of a symbol, type, or member
+- **find-dependencies** - Find dependencies and create a dependency graph from a type
+- **find-duplicate-code** - Find code that is substantially similar to existing code
+
+**Analysis Output Format**: All analysis tools output results in grep-style format: `Filename:Line <copy of line>`
+
 ### Common Options
 
 - `--line <number>`: Line number (1-based) where the refactoring should be applied
@@ -146,11 +155,18 @@ cast convert-string-format Output.cs --line 8
 cast implement-interface-implicit MyClass.cs --line 5
 cast extract-interface Customer.cs --interface-name "ICustomer"
 cast generate-default-constructor Person.cs
+
+# Code analysis
+cast find-symbols MyClass.cs --pattern "Add*"
+cast find-references Calculator.cs --line 15 --column 12
+cast find-usages Service.cs --line 8 --column 20
+cast find-dependencies --type "Calculator" MyClass.cs
+cast find-duplicate-code LargeFile.cs
 ```
 
 ## Implemented Commands
 
-✅ **56 Complete Refactoring Commands** - All major C# refactoring operations are now implemented:
+✅ **61 Complete Commands** - All major C# refactoring operations plus powerful analysis tools are now implemented:
 
 **Code Analysis & Cleanup** (6 commands)  
 **Symbol Refactoring** (4 commands)  
@@ -163,8 +179,9 @@ cast generate-default-constructor Person.cs
 **Code Generation** (7 commands)  
 **Variable & Parameter Management** (4 commands)  
 **Async & Debugging** (2 commands)  
+**Code Analysis Tools** (5 commands)  
 
-The tool now provides comprehensive coverage of C# refactoring operations, making it ideal for coding agents and automated workflows that need safe, precise code transformations.
+The tool now provides comprehensive coverage of C# refactoring operations plus powerful analysis capabilities, making it ideal for coding agents and automated workflows that need safe, precise code transformations and deep code analysis.
 
 ## Architecture
 
