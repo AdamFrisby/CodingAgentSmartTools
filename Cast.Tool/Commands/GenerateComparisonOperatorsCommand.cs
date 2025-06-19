@@ -69,18 +69,19 @@ public class GenerateComparisonOperatorsCommand : Command<GenerateComparisonOper
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would generate comparison operators for class '{className}'[/]");
-                return 0;
-            }
-
             // Generate comparison operators
             var operators = GenerateComparisonOperators(className);
             var newClass = classDeclaration.AddMembers(operators.ToArray());
 
             var newRoot = root.ReplaceNode(classDeclaration, newClass);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

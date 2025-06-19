@@ -79,12 +79,6 @@ public class AddDebuggerDisplayCommand : Command<AddDebuggerDisplayCommand.Setti
 
             var displayFormat = settings.DisplayFormat ?? GenerateDefaultDisplayFormat(classDeclaration);
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add DebuggerDisplay attribute with format: \"{displayFormat}\"[/]");
-                return 0;
-            }
-
             // Add System.Diagnostics using if not present
             var compilationUnit = root as CompilationUnitSyntax;
             var newRoot = EnsureSystemDiagnosticsUsing(compilationUnit);
@@ -98,6 +92,13 @@ public class AddDebuggerDisplayCommand : Command<AddDebuggerDisplayCommand.Setti
             newRoot = newRoot.ReplaceNode(classDeclaration, newClassDeclaration);
 
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
