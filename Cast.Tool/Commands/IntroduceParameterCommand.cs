@@ -74,12 +74,6 @@ public class IntroduceParameterCommand : Command<IntroduceParameterCommand.Setti
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add parameter '{settings.ParameterType} {settings.ParameterName}' to method '{methodDeclaration.Identifier.ValueText}'[/]");
-                return 0;
-            }
-
             // Create the new parameter
             var newParameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier(settings.ParameterName))
                 .WithType(SyntaxFactory.ParseTypeName(settings.ParameterType)
@@ -91,6 +85,13 @@ public class IntroduceParameterCommand : Command<IntroduceParameterCommand.Setti
 
             var newRoot = root.ReplaceNode(methodDeclaration, newMethod);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

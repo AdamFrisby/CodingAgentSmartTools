@@ -65,12 +65,6 @@ public class GenerateDefaultConstructorCommand : Command<GenerateDefaultConstruc
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would generate default constructor for {typeDeclaration.Identifier.ValueText}[/]");
-                return 0;
-            }
-
             // Create the default constructor
             var constructorDeclaration = SyntaxFactory.ConstructorDeclaration(typeDeclaration.Identifier)
                 .WithModifiers(SyntaxFactory.TokenList(
@@ -86,6 +80,13 @@ public class GenerateDefaultConstructorCommand : Command<GenerateDefaultConstruc
             var newTypeDeclaration = typeDeclaration.AddMembers(constructorDeclaration);
             var newRoot = root.ReplaceNode(typeDeclaration, newTypeDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

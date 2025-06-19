@@ -70,12 +70,6 @@ public class ConvertNumericLiteralCommand : Command<ConvertNumericLiteralCommand
             var currentFormat = GetCurrentFormat(originalText);
             var targetFormat = settings.TargetFormat?.ToLowerInvariant() ?? GetNextFormat(currentFormat);
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would convert numeric literal from {currentFormat} to {targetFormat} format[/]");
-                return 0;
-            }
-
             // Parse the value
             if (!TryParseNumericLiteral(originalText, out var value))
             {
@@ -96,6 +90,13 @@ public class ConvertNumericLiteralCommand : Command<ConvertNumericLiteralCommand
 
             var newRoot = root.ReplaceNode(literalExpression, newLiteralExpression);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

@@ -72,12 +72,6 @@ public class ConvertCastToAsExpressionCommand : Command<ConvertCastToAsExpressio
                     return 1;
                 }
 
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert cast to 'as' expression at line {settings.LineNumber}[/]");
-                    return 0;
-                }
-
                 targetExpression = castExpression;
                 newExpression = SyntaxFactory.BinaryExpression(
                     SyntaxKind.AsExpression,
@@ -94,12 +88,6 @@ public class ConvertCastToAsExpressionCommand : Command<ConvertCastToAsExpressio
                 {
                     AnsiConsole.WriteLine("[red]Error: No 'as' expression found at the specified location[/]");
                     return 1;
-                }
-
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert 'as' expression to cast at line {settings.LineNumber}[/]");
-                    return 0;
                 }
 
                 targetExpression = asExpression;
@@ -121,6 +109,13 @@ public class ConvertCastToAsExpressionCommand : Command<ConvertCastToAsExpressio
 
             var newRoot = root.ReplaceNode(targetExpression, newExpression);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
