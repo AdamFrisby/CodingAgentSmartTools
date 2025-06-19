@@ -57,12 +57,6 @@ public class ConvertLocalFunctionToMethodCommand : Command<ConvertLocalFunctionT
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would convert local function '{localFunction.Identifier.ValueText}' to method[/]");
-                return 0;
-            }
-
             // Find the containing class or struct
             var containingType = localFunction.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault();
             if (containingType == null)
@@ -108,6 +102,13 @@ public class ConvertLocalFunctionToMethodCommand : Command<ConvertLocalFunctionT
             var newContainingType = updatedContainingType.AddMembers(methodDeclaration);
             var finalRoot = newRoot.ReplaceNode(updatedContainingType, newContainingType);
             var result = finalRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

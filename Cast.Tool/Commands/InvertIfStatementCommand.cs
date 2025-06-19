@@ -57,12 +57,6 @@ public class InvertIfStatementCommand : Command<InvertIfStatementCommand.Setting
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine("[green]Would invert if statement condition[/]");
-                return 0;
-            }
-
             // Invert the condition
             var invertedCondition = InvertCondition(ifStatement.Condition);
             
@@ -86,6 +80,13 @@ public class InvertIfStatementCommand : Command<InvertIfStatementCommand.Setting
 
             var newRoot = root.ReplaceNode(ifStatement, newStatement);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
