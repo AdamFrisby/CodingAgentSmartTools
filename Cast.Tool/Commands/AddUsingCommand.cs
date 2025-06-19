@@ -62,14 +62,15 @@ public class AddUsingCommand : Command<AddUsingCommand.Settings>
             var engine = new RefactoringEngine();
             var (document, tree, model) = await engine.LoadDocumentAsync(settings.FilePath);
 
+            // Perform the using addition to get the modified content
+            var result = await AddUsingStatement(tree, usingSettings.Namespace);
+            
             if (settings.DryRun)
             {
-                AnsiConsole.WriteLine($"[green]Would add 'using {usingSettings.Namespace};' to {settings.FilePath}[/]");
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
                 return 0;
             }
-
-            // Perform the using addition
-            var result = await AddUsingStatement(tree, usingSettings.Namespace);
             
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

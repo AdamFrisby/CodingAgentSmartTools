@@ -65,18 +65,19 @@ public class SyncNamespaceWithFolderCommand : Command<SyncNamespaceWithFolderCom
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would change namespace from '{currentNamespace}' to '{expectedNamespace}'[/]");
-                return 0;
-            }
-
             // Update the namespace
             var newNamespaceName = SyntaxFactory.ParseName(expectedNamespace);
             var newNamespaceDeclaration = namespaceDeclaration.WithName(newNamespaceName);
 
             var newRoot = root.ReplaceNode(namespaceDeclaration, newNamespaceDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

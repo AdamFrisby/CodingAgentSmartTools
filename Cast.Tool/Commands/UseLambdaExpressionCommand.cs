@@ -62,14 +62,6 @@ public class UseLambdaExpressionCommand : Command<UseLambdaExpressionCommand.Set
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                var currentStyle = GetLambdaStyle(lambdaExpression);
-                var targetStyle = currentStyle == "expression" ? "block" : "expression";
-                AnsiConsole.WriteLine($"[green]Would convert lambda from {currentStyle} to {targetStyle} body[/]");
-                return 0;
-            }
-
             // Convert between expression and block body
             var newLambda = ConvertLambdaBody(lambdaExpression);
             if (newLambda == null)
@@ -80,6 +72,13 @@ public class UseLambdaExpressionCommand : Command<UseLambdaExpressionCommand.Set
 
             var newRoot = root.ReplaceNode(lambdaExpression, newLambda);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

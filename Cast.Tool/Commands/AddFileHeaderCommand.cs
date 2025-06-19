@@ -72,17 +72,16 @@ public class AddFileHeaderCommand : Command<AddFileHeaderCommand.Settings>
                 AnsiConsole.WriteLine("[yellow]File already appears to have a header comment. Adding new header at the top.[/]");
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add file header to {settings.FilePath}[/]");
-                AnsiConsole.WriteLine("[dim]Header preview:[/]");
-                AnsiConsole.WriteLine(headerText);
-                return 0;
-            }
-
             // Create the header comment
             var newRoot = AddHeaderToFile(root, headerText);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

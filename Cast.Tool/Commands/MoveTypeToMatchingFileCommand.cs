@@ -54,16 +54,18 @@ namespace Cast.Tool.Commands
                 var targetDirectory = settings.TargetDirectory ?? Path.GetDirectoryName(settings.FilePath) ?? ".";
                 var newFileName = Path.Combine(targetDirectory, $"{settings.TypeName}.cs");
 
+                var modifiedCode = modifiedRoot.ToFullString();
+
                 if (settings.DryRun)
                 {
+                    var originalContent = File.ReadAllText(settings.FilePath);
                     AnsiConsole.MarkupLine("[green]Would move type '{0}' to {1}[/]", 
                         settings.TypeName, newFileName);
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Extracted type code:[/]");
-                    AnsiConsole.WriteLine(extractedTypeCode);
+                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
+                    DiffUtility.DisplayDiff(originalContent, modifiedCode, settings.FilePath);
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified original file:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    AnsiConsole.MarkupLine("[yellow]New file would be created: {0}[/]", newFileName);
                     return 0;
                 }
 
@@ -71,7 +73,6 @@ namespace Cast.Tool.Commands
                 File.WriteAllText(newFileName, extractedTypeCode);
 
                 // Update the original file
-                var modifiedCode = modifiedRoot.ToFullString();
                 File.WriteAllText(settings.FilePath, modifiedCode);
 
                 AnsiConsole.MarkupLine("[green]Successfully moved type '{0}' to {1}[/]", 

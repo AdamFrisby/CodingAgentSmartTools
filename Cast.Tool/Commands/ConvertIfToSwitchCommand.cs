@@ -69,12 +69,6 @@ public class ConvertIfToSwitchCommand : Command<ConvertIfToSwitchCommand.Setting
                     return 1;
                 }
 
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert if statement to switch at line {settings.LineNumber}[/]");
-                    return 0;
-                }
-
                 var switchStatement = ConvertIfToSwitch(ifStatement);
                 if (switchStatement == null)
                 {
@@ -84,6 +78,13 @@ public class ConvertIfToSwitchCommand : Command<ConvertIfToSwitchCommand.Setting
 
                 var newRoot = root.ReplaceNode(ifStatement, switchStatement);
                 var result = newRoot.ToFullString();
+
+                if (settings.DryRun)
+                {
+                    var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                    return 0;
+                }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
                 await File.WriteAllTextAsync(outputPath, result);
@@ -101,15 +102,16 @@ public class ConvertIfToSwitchCommand : Command<ConvertIfToSwitchCommand.Setting
                     return 1;
                 }
 
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert switch statement to if-else-if chain at line {settings.LineNumber}[/]");
-                    return 0;
-                }
-
                 var ifStatement = ConvertSwitchToIf(switchStatement);
                 var newRoot = root.ReplaceNode(switchStatement, ifStatement);
                 var result = newRoot.ToFullString();
+
+                if (settings.DryRun)
+                {
+                    var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                    return 0;
+                }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
                 await File.WriteAllTextAsync(outputPath, result);

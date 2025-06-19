@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Cast.Tool.Core;
 
 namespace Cast.Tool.Commands;
 
@@ -76,13 +77,8 @@ public sealed class SortUsingsCommand : Command<SortUsingsSettings>
 
             if (settings.DryRun)
             {
-                AnsiConsole.MarkupLine("[green]Would sort {0} using statements in {1}[/]", 
-                    usingDirectives.Count, settings.FilePath);
-                AnsiConsole.MarkupLine("Sorted order:");
-                foreach (var sortedUsing in sortedUsings)
-                {
-                    AnsiConsole.MarkupLine("  {0}", sortedUsing.ToString().Trim());
-                }
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, newSourceText, settings.FilePath);
                 return 0;
             }
 

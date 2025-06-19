@@ -80,16 +80,17 @@ public class AddConstructorParametersCommand : Command<AddConstructorParametersC
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add constructor parameters for members: {string.Join(", ", memberNames)}[/]");
-                return 0;
-            }
-
             // Create or update the constructor
             var newClassDeclaration = AddOrUpdateConstructor(classDeclaration, memberNames);
             var newRoot = root.ReplaceNode(classDeclaration, newClassDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

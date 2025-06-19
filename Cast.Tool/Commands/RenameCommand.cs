@@ -97,15 +97,15 @@ public class RenameCommand : Command<RenameCommand.Settings>
                 return 1;
             }
 
+            // Perform the rename to get the modified content
+            var result = await PerformSimpleRename(settings.FilePath, renameSettings.OldName, renameSettings.NewName);
+            
             if (settings.DryRun)
             {
-                AnsiConsole.WriteLine($"[green]Would rename '{symbol.Name}' to '{renameSettings.NewName}' in {settings.FilePath}[/]");
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
                 return 0;
             }
-
-            // For now, implement a simple text-based rename for the single file
-            // In a full implementation, this would use Renamer.RenameSymbolAsync with a proper workspace
-            var result = await PerformSimpleRename(settings.FilePath, renameSettings.OldName, renameSettings.NewName);
             
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

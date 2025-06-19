@@ -94,9 +94,18 @@ namespace Cast.Tool.Commands
                         AnsiConsole.MarkupLine("[yellow]Members to extract: {0}[/]", string.Join(", ", membersToExtract));
                     }
                     
+                    // Show diff for the modified original file
+                    var dryRunModifiedCode = modifiedRoot.ToFullString();
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Generated interface:[/]");
-                    AnsiConsole.WriteLine(interfaceCode);
+                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
+                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
+                    
+                    // Show the new interface file that would be created
+                    var dryRunInterfacePath = Path.Combine(Path.GetDirectoryName(settings.FilePath) ?? ".", $"{settings.InterfaceName}.cs");
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.MarkupLine("[yellow]New interface file would be created: {0}[/]", dryRunInterfacePath);
+                    DiffUtility.DisplayDiff("", interfaceCode, dryRunInterfacePath);
+                    
                     return 0;
                 }
 

@@ -106,16 +106,15 @@ public class ConvertForLoopCommand : Command<ConvertForLoopCommand.Settings>
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would convert {(settings.TargetType.ToLower() == "foreach" ? "for" : "foreach")} loop to {settings.TargetType} loop[/]");
-                AnsiConsole.WriteLine("[dim]New loop:[/]");
-                AnsiConsole.WriteLine(newLoop.ToFullString());
-                return 0;
-            }
-
             var newRoot = root.ReplaceNode(targetLoop, newLoop);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

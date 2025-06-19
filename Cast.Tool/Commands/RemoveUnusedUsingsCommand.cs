@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Spectre.Console;
 using Spectre.Console.Cli;
+using Cast.Tool.Core;
 
 namespace Cast.Tool.Commands;
 
@@ -75,12 +76,8 @@ public sealed class RemoveUnusedUsingsCommand : Command<RemoveUnusedUsingsSettin
 
             if (settings.DryRun)
             {
-                AnsiConsole.MarkupLine("[green]Would remove {0} unused using statements from {1}[/]", 
-                    unusedUsings.Count, settings.FilePath);
-                foreach (var unusedUsing in unusedUsings)
-                {
-                    AnsiConsole.MarkupLine("  - {0}", unusedUsing.ToString().Trim());
-                }
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, newSourceText, settings.FilePath);
                 return 0;
             }
 

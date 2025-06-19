@@ -64,19 +64,16 @@ namespace Cast.Tool.Commands
                 var root = tree.GetCompilationUnitRoot();
 
                 var modifiedRoot = ExtractLocalFunction(root, settings.StartLine, settings.EndLine, settings.FunctionName);
+                var modifiedCode = modifiedRoot.ToFullString();
 
                 if (settings.DryRun)
                 {
-                    AnsiConsole.MarkupLine("[green]Would extract local function '{0}' from lines {1}-{2} in {3}[/]", 
-                        settings.FunctionName, settings.StartLine, settings.EndLine, settings.FilePath);
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    var originalContent = File.ReadAllText(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, modifiedCode, settings.FilePath);
                     return 0;
                 }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
-                var modifiedCode = modifiedRoot.ToFullString();
                 File.WriteAllText(outputPath, modifiedCode);
 
                 AnsiConsole.MarkupLine("[green]Successfully extracted local function '{0}' from lines {1}-{2} in {3}[/]", 

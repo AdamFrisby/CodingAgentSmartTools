@@ -82,12 +82,6 @@ public class GenerateParameterCommand : Command<GenerateParameterCommand.Setting
             var parameterName = "parameter" + (containingMethod.ParameterList.Parameters.Count + 1);
             var parameterType = "object"; // Default type
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would generate parameter '{parameterType} {parameterName}' for method '{containingMethod.Identifier.ValueText}'[/]");
-                return 0;
-            }
-
             // Create the new parameter
             var newParameter = SyntaxFactory.Parameter(SyntaxFactory.Identifier(parameterName))
                 .WithType(SyntaxFactory.ParseTypeName(parameterType)
@@ -99,6 +93,13 @@ public class GenerateParameterCommand : Command<GenerateParameterCommand.Setting
 
             var newRoot = root.ReplaceNode(containingMethod, newMethod);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

@@ -54,19 +54,16 @@ namespace Cast.Tool.Commands
                 var root = tree.GetCompilationUnitRoot();
 
                 var modifiedRoot = InlineMethod(root, settings.MethodName, settings.LineNumber);
+                var modifiedCode = modifiedRoot.ToFullString();
 
                 if (settings.DryRun)
                 {
-                    AnsiConsole.MarkupLine("[green]Would inline method '{0}' in {1}[/]", 
-                        settings.MethodName, settings.FilePath);
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    var originalContent = File.ReadAllText(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, modifiedCode, settings.FilePath);
                     return 0;
                 }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
-                var modifiedCode = modifiedRoot.ToFullString();
                 File.WriteAllText(outputPath, modifiedCode);
 
                 AnsiConsole.MarkupLine("[green]Successfully inlined method '{0}' in {1}[/]", 

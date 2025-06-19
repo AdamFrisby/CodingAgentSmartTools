@@ -64,12 +64,6 @@ public class SplitOrMergeIfStatementsCommand : Command<SplitOrMergeIfStatementsC
 
             var operation = DetermineOperation(ifStatement, settings.Operation);
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would {operation} if statement[/]");
-                return 0;
-            }
-
             StatementSyntax? newStatement = operation switch
             {
                 "split" => SplitIfStatement(ifStatement),
@@ -85,6 +79,13 @@ public class SplitOrMergeIfStatementsCommand : Command<SplitOrMergeIfStatementsC
 
             var newRoot = root.ReplaceNode(ifStatement, newStatement);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

@@ -69,12 +69,6 @@ public class ConvertStringLiteralCommand : Command<ConvertStringLiteralCommand.S
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would convert string literal to {settings.Target} format at line {settings.LineNumber}[/]");
-                return 0;
-            }
-
             LiteralExpressionSyntax newStringLiteral;
 
             if (settings.Target.ToLower() == "verbatim")
@@ -107,6 +101,13 @@ public class ConvertStringLiteralCommand : Command<ConvertStringLiteralCommand.S
 
             var newRoot = root.ReplaceNode(stringLiteral, newStringLiteral);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

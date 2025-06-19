@@ -123,18 +123,15 @@ namespace Cast.Tool.Commands
             
             newType = newType.WithMembers(SyntaxFactory.List(updatedMembers));
             var modifiedRoot = root.ReplaceNode(primaryType, newType);
+            var modifiedCode = modifiedRoot.ToFullString();
 
             if (settings.DryRun)
             {
-                AnsiConsole.MarkupLine("[green]Would rename type '{0}' to '{1}' in {2}[/]", 
-                    originalTypeName, fileName, settings.FilePath);
-                AnsiConsole.WriteLine();
-                AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                var originalCode = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalCode, modifiedCode, settings.FilePath);
                 return 0;
             }
 
-            var modifiedCode = modifiedRoot.ToFullString();
             File.WriteAllText(settings.FilePath, modifiedCode);
 
             AnsiConsole.MarkupLine("[green]Successfully renamed type '{0}' to '{1}' in {2}[/]", 

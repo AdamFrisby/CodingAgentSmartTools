@@ -54,14 +54,15 @@ public class AddExplicitCastCommand : BaseRefactoringCommand
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add explicit cast to '{castSettings.TargetType}' for expression: {expression.ToString().Trim()}[/]");
-                return 0;
-            }
-
             // Perform the cast addition
             var result = await AddExplicitCast(tree, expression, castSettings.TargetType);
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
             
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

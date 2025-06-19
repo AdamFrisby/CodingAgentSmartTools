@@ -64,12 +64,6 @@ public class MakeLocalFunctionStaticCommand : Command<MakeLocalFunctionStaticCom
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would make local function '{localFunction.Identifier.ValueText}' static[/]");
-                return 0;
-            }
-
             // Add static modifier
             var newModifiers = localFunction.Modifiers.Add(
                 SyntaxFactory.Token(SyntaxKind.StaticKeyword)
@@ -79,6 +73,13 @@ public class MakeLocalFunctionStaticCommand : Command<MakeLocalFunctionStaticCom
 
             var newRoot = root.ReplaceNode(localFunction, newLocalFunction);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

@@ -67,12 +67,6 @@ public class InlineTemporaryVariableCommand : Command<InlineTemporaryVariableCom
             var variableName = variable.Identifier.ValueText;
             var initializerExpression = variable.Initializer.Value;
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would inline temporary variable '{variableName}'[/]");
-                return 0;
-            }
-
             // Find all references to this variable in the same scope
             var containingBlock = variableDeclaration.Ancestors().OfType<BlockSyntax>().FirstOrDefault();
             if (containingBlock == null)
@@ -124,6 +118,13 @@ public class InlineTemporaryVariableCommand : Command<InlineTemporaryVariableCom
             }
 
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
