@@ -66,12 +66,6 @@ public class MoveDeclarationNearReferenceCommand : Command<MoveDeclarationNearRe
 
             var variableName = variable.Identifier.ValueText;
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would move declaration of variable '{variableName}' closer to its first use[/]");
-                return 0;
-            }
-
             // Find the containing block
             var containingBlock = variableDeclaration.Ancestors().OfType<BlockSyntax>().FirstOrDefault();
             if (containingBlock == null)
@@ -120,6 +114,13 @@ public class MoveDeclarationNearReferenceCommand : Command<MoveDeclarationNearRe
             var newBlock = containingBlock.WithStatements(SyntaxFactory.List(newStatements));
             var newRoot = root.ReplaceNode(containingBlock, newBlock);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
