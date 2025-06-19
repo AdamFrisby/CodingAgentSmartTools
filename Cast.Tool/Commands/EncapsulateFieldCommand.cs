@@ -67,12 +67,6 @@ public class EncapsulateFieldCommand : Command<EncapsulateFieldCommand.Settings>
             var fieldName = variableDeclarator.Identifier.ValueText;
             var propertyName = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would encapsulate field '{fieldName}' as property '{propertyName}'[/]");
-                return 0;
-            }
-
             // Create a private field with underscore prefix
             var backingFieldName = "_" + fieldName;
             var newFieldDeclaration = SyntaxFactory.FieldDeclaration(
@@ -121,6 +115,13 @@ public class EncapsulateFieldCommand : Command<EncapsulateFieldCommand.Settings>
 
             var newRoot = root.ReplaceNode(containingType, newContainingType);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

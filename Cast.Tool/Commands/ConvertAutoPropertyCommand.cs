@@ -49,16 +49,15 @@ public class ConvertAutoPropertyCommand : BaseRefactoringCommand
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                var isAuto = IsAutoProperty(property);
-                var targetType = convertSettings.Direction == "full" ? "full property" : "auto property";
-                AnsiConsole.WriteLine($"[green]Would convert {(isAuto ? "auto" : "full")} property '{property.Identifier.Text}' to {targetType}[/]");
-                return 0;
-            }
-
             // Perform the conversion
             var result = await ConvertProperty(tree, property, convertSettings.Direction);
+            
+            if (settings.DryRun)
+            {
+                var originalContent = File.ReadAllText(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
             
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
