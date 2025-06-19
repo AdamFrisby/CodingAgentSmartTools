@@ -64,12 +64,6 @@ public class InvertConditionalExpressionsCommand : Command<InvertConditionalExpr
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine("[green]Would invert conditional expression[/]");
-                return 0;
-            }
-
             SyntaxNode newRoot;
             if (conditionalExpression != null)
             {
@@ -101,6 +95,13 @@ public class InvertConditionalExpressionsCommand : Command<InvertConditionalExpr
             }
 
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

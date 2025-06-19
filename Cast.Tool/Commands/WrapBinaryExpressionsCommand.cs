@@ -62,17 +62,18 @@ public class WrapBinaryExpressionsCommand : Command<WrapBinaryExpressionsCommand
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine("[green]Would wrap binary expression for better readability[/]");
-                return 0;
-            }
-
             // Wrap the binary expression - add line breaks around operators for long expressions
             var wrappedExpression = WrapBinaryExpression(binaryExpression);
 
             var newRoot = root.ReplaceNode(binaryExpression, wrappedExpression);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

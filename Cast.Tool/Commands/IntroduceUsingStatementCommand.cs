@@ -71,12 +71,6 @@ public class IntroduceUsingStatementCommand : Command<IntroduceUsingStatementCom
 
             var variableName = variable.Identifier.ValueText;
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would introduce using statement for variable '{variableName}'[/]");
-                return 0;
-            }
-
             // Create the using statement
             var usingStatement = SyntaxFactory.UsingStatement(
                 SyntaxFactory.VariableDeclaration(variableDeclaration.Declaration.Type)
@@ -96,6 +90,13 @@ public class IntroduceUsingStatementCommand : Command<IntroduceUsingStatementCom
             var newBlock = containingBlock.ReplaceNode(variableDeclaration, usingStatement);
             var newRoot = root.ReplaceNode(containingBlock, newBlock);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

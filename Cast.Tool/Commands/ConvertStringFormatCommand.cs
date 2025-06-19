@@ -63,12 +63,6 @@ public class ConvertStringFormatCommand : Command<ConvertStringFormatCommand.Set
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine("[green]Would convert String.Format call to interpolated string[/]");
-                return 0;
-            }
-
             // Convert to interpolated string
             var interpolatedString = ConvertToInterpolatedString(invocation);
             if (interpolatedString == null)
@@ -79,6 +73,13 @@ public class ConvertStringFormatCommand : Command<ConvertStringFormatCommand.Set
 
             var newRoot = root.ReplaceNode(invocation, interpolatedString);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

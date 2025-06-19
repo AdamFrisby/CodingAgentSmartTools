@@ -45,18 +45,16 @@ namespace Cast.Tool.Commands
 
                 var modifiedRoot = ApplyRecursivePatterns(root, settings.LineNumber);
 
+                var modifiedCode = modifiedRoot.ToFullString();
+
                 if (settings.DryRun)
                 {
-                    AnsiConsole.MarkupLine("[green]Would apply recursive patterns in {0}[/]", 
-                        settings.FilePath);
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    var originalContent = File.ReadAllText(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, modifiedCode, settings.FilePath);
                     return 0;
                 }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
-                var modifiedCode = modifiedRoot.ToFullString();
                 File.WriteAllText(outputPath, modifiedCode);
 
                 AnsiConsole.MarkupLine("[green]Successfully applied recursive patterns in {0}[/]", 

@@ -178,15 +178,17 @@ public class ConvertTupleToStructCommand : Command<ConvertTupleToStructCommand.S
             newRoot = ((CompilationUnitSyntax)newRoot).AddMembers(structSyntax);
         }
 
+        var result = newRoot.ToFullString();
+        
         if (settings.DryRun)
         {
-            AnsiConsole.MarkupLine($"[green]Would convert tuple to struct '{settings.StructName}' in {settings.FilePath}[/]");
-            AnsiConsole.WriteLine(newRoot.ToFullString());
+            var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+            DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
             return 0;
         }
 
         var outputPath = settings.OutputPath ?? settings.FilePath;
-        await File.WriteAllTextAsync(outputPath, newRoot.ToFullString());
+        await File.WriteAllTextAsync(outputPath, result);
 
         AnsiConsole.MarkupLine($"[green]Successfully converted tuple to struct '{settings.StructName}' in {outputPath}[/]");
         return 0;

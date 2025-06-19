@@ -72,12 +72,6 @@ public class MakeMemberStaticCommand : Command<MakeMemberStaticCommand.Settings>
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would make member '{memberName}' static[/]");
-                return 0;
-            }
-
             // Add static modifier
             var newModifiers = modifiers.Add(SyntaxFactory.Token(SyntaxKind.StaticKeyword).WithTrailingTrivia(SyntaxFactory.Space));
             var newMemberDeclaration = WithModifiers(memberDeclaration, newModifiers);
@@ -90,6 +84,13 @@ public class MakeMemberStaticCommand : Command<MakeMemberStaticCommand.Settings>
 
             var newRoot = root.ReplaceNode(memberDeclaration, newMemberDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
