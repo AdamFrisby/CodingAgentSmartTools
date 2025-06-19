@@ -57,12 +57,6 @@ public class ReverseForStatementCommand : Command<ReverseForStatementCommand.Set
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine("[green]Would reverse for statement direction[/]");
-                return 0;
-            }
-
             // Try to reverse the for loop - this is a simplified implementation
             var newForStatement = ReverseForLoop(forStatement);
             if (newForStatement == null)
@@ -73,6 +67,13 @@ public class ReverseForStatementCommand : Command<ReverseForStatementCommand.Set
 
             var newRoot = root.ReplaceNode(forStatement, newForStatement);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
