@@ -70,12 +70,6 @@ public class AddAwaitCommand : Command<AddAwaitCommand.Settings>
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would add 'await' to the async call at line {settings.LineNumber}[/]");
-                return 0;
-            }
-
             // Create the await expression
             var newAwaitExpression = SyntaxFactory.AwaitExpression(
                 SyntaxFactory.Token(SyntaxKind.AwaitKeyword).WithTrailingTrivia(SyntaxFactory.Space),
@@ -83,6 +77,13 @@ public class AddAwaitCommand : Command<AddAwaitCommand.Settings>
 
             var newRoot = root.ReplaceNode(invocation, newAwaitExpression);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

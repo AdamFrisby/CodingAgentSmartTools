@@ -75,15 +75,16 @@ public class ConvertGetMethodToPropertyCommand : Command<ConvertGetMethodToPrope
                     return 1;
                 }
 
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert Get method '{method.Identifier.ValueText}' to property at line {settings.LineNumber}[/]");
-                    return 0;
-                }
-
                 var property = ConvertMethodToProperty(method);
                 var newRoot = root.ReplaceNode(method, property);
                 var result = newRoot.ToFullString();
+
+                if (settings.DryRun)
+                {
+                    var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                    return 0;
+                }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
                 await File.WriteAllTextAsync(outputPath, result);
@@ -101,15 +102,16 @@ public class ConvertGetMethodToPropertyCommand : Command<ConvertGetMethodToPrope
                     return 1;
                 }
 
-                if (settings.DryRun)
-                {
-                    AnsiConsole.WriteLine($"[green]Would convert property '{property.Identifier.ValueText}' to Get method at line {settings.LineNumber}[/]");
-                    return 0;
-                }
-
                 var method = ConvertPropertyToMethod(property);
                 var newRoot = root.ReplaceNode(property, method);
                 var result = newRoot.ToFullString();
+
+                if (settings.DryRun)
+                {
+                    var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                    DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                    return 0;
+                }
 
                 var outputPath = settings.OutputPath ?? settings.FilePath;
                 await File.WriteAllTextAsync(outputPath, result);

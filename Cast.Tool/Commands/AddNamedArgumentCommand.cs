@@ -81,18 +81,17 @@ public class AddNamedArgumentCommand : Command<AddNamedArgumentCommand.Settings>
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                var preview = PreviewChanges(argumentList, methodSymbol, settings.ParameterIndex);
-                AnsiConsole.WriteLine($"[green]Would add named arguments to method call:[/]");
-                AnsiConsole.WriteLine($"[dim]{preview}[/]");
-                return 0;
-            }
-
             // Add named arguments
             var newInvocation = AddNamedArgumentsToInvocation(invocation, methodSymbol, settings.ParameterIndex);
             var newRoot = root.ReplaceNode(invocation, newInvocation);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);

@@ -57,12 +57,6 @@ public class ConvertClassToRecordCommand : Command<ConvertClassToRecordCommand.S
                 return 1;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would convert class '{classDeclaration.Identifier.ValueText}' to record[/]");
-                return 0;
-            }
-
             // Create the record declaration
             var recordDeclaration = SyntaxFactory.RecordDeclaration(
                 classDeclaration.AttributeLists,
@@ -80,6 +74,13 @@ public class ConvertClassToRecordCommand : Command<ConvertClassToRecordCommand.S
 
             var newRoot = root.ReplaceNode(classDeclaration, recordDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
