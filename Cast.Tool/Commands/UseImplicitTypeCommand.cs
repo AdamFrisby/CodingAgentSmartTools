@@ -68,12 +68,6 @@ public class UseImplicitTypeCommand : Command<UseImplicitTypeCommand.Settings>
                 return 0;
             }
 
-            if (settings.DryRun)
-            {
-                AnsiConsole.WriteLine($"[green]Would replace explicit type with 'var' at line {settings.LineNumber}[/]");
-                return 0;
-            }
-
             // Check if var can be used (variable has initializer)
             var firstVariable = variableDeclaration.Variables.FirstOrDefault();
             if (firstVariable?.Initializer?.Value == null)
@@ -90,6 +84,13 @@ public class UseImplicitTypeCommand : Command<UseImplicitTypeCommand.Settings>
             var newVariableDeclaration = variableDeclaration.WithType(varType);
             var newRoot = root.ReplaceNode(variableDeclaration, newVariableDeclaration);
             var result = newRoot.ToFullString();
+
+            if (settings.DryRun)
+            {
+                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+                return 0;
+            }
 
             var outputPath = settings.OutputPath ?? settings.FilePath;
             await File.WriteAllTextAsync(outputPath, result);
