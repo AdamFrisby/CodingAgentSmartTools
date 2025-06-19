@@ -94,9 +94,18 @@ namespace Cast.Tool.Commands
                         AnsiConsole.MarkupLine("[yellow]Members to extract: {0}[/]", string.Join(", ", membersToExtract));
                     }
                     
+                    // Show diff for the modified original file
+                    var dryRunModifiedCode = modifiedRoot.ToFullString();
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Generated base class:[/]");
-                    AnsiConsole.WriteLine(baseClassCode);
+                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
+                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
+                    
+                    // Show the new base class file that would be created
+                    var dryRunBaseClassPath = Path.Combine(Path.GetDirectoryName(settings.FilePath) ?? ".", $"{settings.BaseClassName}.cs");
+                    AnsiConsole.WriteLine();
+                    AnsiConsole.MarkupLine("[yellow]New base class file would be created: {0}[/]", dryRunBaseClassPath);
+                    DiffUtility.DisplayDiff("", baseClassCode, dryRunBaseClassPath);
+                    
                     return 0;
                 }
 

@@ -71,7 +71,9 @@ public class IntroduceLocalVariableCommand : Command<IntroduceLocalVariableComma
 
             if (settings.DryRun)
             {
+                // For now, since the actual refactoring is not implemented, show a simple preview
                 AnsiConsole.WriteLine($"[green]Would introduce local variable '{settings.VariableName}' for expression at line {settings.LineNumber}[/]");
+                AnsiConsole.WriteLine("[yellow]Note: Detailed diff preview will be available when refactoring logic is implemented.[/]");
                 return 0;
             }
 

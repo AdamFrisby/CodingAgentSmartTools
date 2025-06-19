@@ -62,7 +62,9 @@ public class ExtractMethodCommand : BaseRefactoringCommand
 
             if (settings.DryRun)
             {
+                // For now, since the actual refactoring is not implemented, show a simple preview
                 AnsiConsole.WriteLine($"[green]Would extract {selectedNodes.Count} nodes into method '{extractSettings.MethodName}'[/]");
+                AnsiConsole.WriteLine("[yellow]Note: Detailed diff preview will be available when refactoring logic is implemented.[/]");
                 return 0;
             }
 

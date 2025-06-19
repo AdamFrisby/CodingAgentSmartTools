@@ -68,12 +68,18 @@ namespace Cast.Tool.Commands
                 {
                     AnsiConsole.MarkupLine("[green]Would move type '{0}' to namespace '{1}' in {2}[/]", 
                         settings.TypeName, settings.TargetNamespace, newFileName);
+                    
+                    // Show diff for the original file (with type removed)
+                    var dryRunModifiedCode = modifiedRoot.ToFullString();
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Extracted type code:[/]");
-                    AnsiConsole.WriteLine(extractedTypeCode);
+                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
+                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
+                    
+                    // Show the new file that would be created
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified original file:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    AnsiConsole.MarkupLine("[yellow]New file would be created: {0}[/]", newFileName);
+                    DiffUtility.DisplayDiff("", extractedTypeCode, newFileName);
+                    
                     return 0;
                 }
 

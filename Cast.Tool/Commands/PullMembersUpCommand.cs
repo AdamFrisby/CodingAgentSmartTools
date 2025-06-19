@@ -84,9 +84,11 @@ namespace Cast.Tool.Commands
                         AnsiConsole.MarkupLine("[yellow]Members to move: {0}[/]", string.Join(", ", membersToMove));
                     }
                     
+                    // Show diff for the changes
+                    var dryRunModifiedCode = modifiedRoot.ToFullString();
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
+                    
                     return 0;
                 }
 

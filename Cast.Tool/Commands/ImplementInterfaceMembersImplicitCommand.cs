@@ -75,9 +75,12 @@ namespace Cast.Tool.Commands
                 {
                     AnsiConsole.MarkupLine("[green]Would implement interface '{0}' members implicitly in class '{1}' in {2}[/]", 
                         settings.InterfaceName, settings.ClassName, settings.FilePath);
+                    
+                    // Show diff for the changes
+                    var dryRunModifiedCode = modifiedRoot.ToFullString();
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Modified code:[/]");
-                    AnsiConsole.WriteLine(modifiedRoot.ToFullString());
+                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
+                    
                     return 0;
                 }
 
