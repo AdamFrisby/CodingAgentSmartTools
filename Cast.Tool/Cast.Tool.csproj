@@ -11,6 +11,9 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.9.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.9.2" />
     <PackageReference Include="Spectre.Console.Cli" Version="0.50.0" />
+    <PackageReference Include="StreamJsonRpc" Version="2.18.48" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 
 </Project>
