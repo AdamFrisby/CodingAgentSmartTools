@@ -26,6 +26,10 @@ namespace Cast.Tool.Commands
         [Description("Target folder path (default: namespace path relative to project)")]
         public string? TargetFolder { get; set; }
 
+        [CommandOption("--project-path")]
+        [Description("Path to the project directory (for resolving target folder structure)")]
+        public string? ProjectPath { get; set; }
+
         [CommandOption("--dry-run")]
         [Description("Preview changes without applying them")]
         public bool DryRun { get; set; }
