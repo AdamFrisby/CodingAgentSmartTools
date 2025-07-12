@@ -191,6 +191,28 @@ app.Configure(config =>
         
     config.AddCommand<FindDuplicateCodeCommand>("find-duplicate-code")
         .WithDescription("Find code that is substantially similar to existing code");
+        
+    // LSP commands
+    config.AddCommand<LspGoToDefinitionCommand>("lsp-goto-definition")
+        .WithDescription("Go to definition using LSP server");
+        
+    config.AddCommand<LspFindReferencesCommand>("lsp-find-references")
+        .WithDescription("Find references using LSP server");
+        
+    config.AddCommand<LspHoverCommand>("lsp-hover")
+        .WithDescription("Get hover information using LSP server");
+        
+    config.AddCommand<LspWorkspaceSymbolsCommand>("lsp-workspace-symbols")
+        .WithDescription("Search workspace symbols using LSP server");
+        
+    config.AddCommand<LspDocumentSymbolsCommand>("lsp-document-symbols")
+        .WithDescription("Get document symbols using LSP server");
+        
+    config.AddCommand<LspCodeActionsCommand>("lsp-code-actions")
+        .WithDescription("Get available code actions using LSP server");
+        
+    config.AddCommand<LspFormatDocumentCommand>("lsp-format-document")
+        .WithDescription("Format document using LSP server");
 });
 
 return app.Run(args);
