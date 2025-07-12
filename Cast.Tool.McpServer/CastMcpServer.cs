@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
-using Cast.Tool.Commands;
+using Cast.Tool.Core;
 using System.Reflection;
 using System.Text.Json;
 
@@ -20,117 +20,14 @@ public class CastMcpServer
 
     private Dictionary<string, (Type CommandType, string Description)> DiscoverCastCommands()
     {
-        var commands = new Dictionary<string, (Type CommandType, string Description)>();
-        
-        // Get all command types from the Cast.Tool assembly
-        var castAssembly = typeof(RenameCommand).Assembly;
-        var commandTypes = castAssembly.GetTypes()
-            .Where(t => t.Namespace == "Cast.Tool.Commands" && 
-                       t.Name.EndsWith("Command") && 
-                       !t.IsAbstract)
-            .ToList();
+        _logger.LogInformation($"Found {CastCommandRegistry.Commands.Count} Cast commands");
 
-        _logger.LogInformation($"Found {commandTypes.Count} Cast commands");
-
-        foreach (var commandType in commandTypes)
+        foreach (var (commandName, (commandType, description)) in CastCommandRegistry.Commands)
         {
-            // Convert command type name to command name (e.g., RenameCommand -> rename)
-            var commandName = ConvertTypeNameToCommandName(commandType.Name);
-            var description = GetCommandDescription(commandType, commandName);
-            
-            commands[commandName] = (commandType, description);
             _logger.LogDebug($"Registered command: {commandName} -> {commandType.Name}");
         }
 
-        return commands;
-    }
-
-    private string ConvertTypeNameToCommandName(string typeName)
-    {
-        // Remove "Command" suffix and convert PascalCase to kebab-case
-        var name = typeName.Replace("Command", "");
-        
-        // Convert PascalCase to kebab-case
-        var result = "";
-        for (int i = 0; i < name.Length; i++)
-        {
-            if (i > 0 && char.IsUpper(name[i]))
-            {
-                result += "-";
-            }
-            result += char.ToLower(name[i]);
-        }
-        
-        return result;
-    }
-
-    private string GetCommandDescription(Type commandType, string commandName)
-    {
-        // Provide descriptions based on command names
-        return commandName switch
-        {
-            "rename" => "Rename a symbol at the specified location",
-            "extract-method" => "Extract a method from the selected code",
-            "add-using" => "Add missing using statements",
-            "convert-auto-property" => "Convert between auto property and full property",
-            "add-explicit-cast" => "Add explicit cast to an expression",
-            "remove-unused-usings" => "Remove unused using statements from the file",
-            "sort-usings" => "Sort using statements alphabetically",
-            "add-file-header" => "Add a file header comment to the source file",
-            "sync-namespace" => "Sync namespace with folder structure",
-            "sync-type-file" => "Synchronize type name and file name",
-            "move-type-to-file" => "Move type to its own matching file",
-            "move-type-to-namespace" => "Move type to namespace and corresponding folder",
-            "move-declaration-near-reference" => "Move variable declaration closer to its first use",
-            "extract-local-function" => "Extract local function from code block",
-            "inline-method" => "Inline a method by replacing its calls with the method body",
-            "inline-temporary" => "Inline temporary variable",
-            "change-method-signature" => "Change method signature (parameters and return type)",
-            "convert-local-function" => "Convert local function to method",
-            "make-local-function-static" => "Make local function static",
-            "generate-default-constructor" => "Generate default constructor for class or struct",
-            "add-constructor-params" => "Add constructor parameters from class members",
-            "encapsulate-field" => "Encapsulate field as property",
-            "make-member-static" => "Make member static",
-            "convert-get-method" => "Convert between Get method and property",
-            "use-explicit-type" => "Use explicit type (replace var)",
-            "use-implicit-type" => "Use implicit type (var)",
-            "convert-class-record" => "Convert class to record",
-            "convert-tuple-struct" => "Convert tuple to struct",
-            "convert-anonymous-type" => "Convert anonymous type to class",
-            "convert-for-loop" => "Convert between for and foreach loops",
-            "convert-if-switch" => "Convert between if-else-if and switch statements",
-            "invert-if" => "Invert if statement condition",
-            "invert-conditional" => "Invert conditional expressions and logical operators",
-            "split-merge-if" => "Split or merge if statements",
-            "reverse-for" => "Reverse for statement direction",
-            "convert-string-literal" => "Convert between regular and verbatim string literals",
-            "convert-string-format" => "Convert String.Format calls to interpolated strings",
-            "convert-to-interpolated" => "Convert string concatenation to interpolated string",
-            "use-lambda-expression" => "Convert between lambda expression and block body",
-            "use-recursive-patterns" => "Convert to recursive patterns for advanced pattern matching",
-            "wrap-binary-expressions" => "Wrap binary expressions with line breaks",
-            "convert-numeric-literal" => "Convert numeric literal between decimal, hexadecimal, and binary formats",
-            "generate-comparison-operators" => "Generate comparison operators for class",
-            "generate-parameter" => "Generate parameter for method",
-            "implement-interface-explicit" => "Implement all interface members explicitly",
-            "implement-interface-implicit" => "Implement all interface members implicitly",
-            "extract-interface" => "Extract interface from existing class",
-            "extract-base-class" => "Extract base class from existing class",
-            "pull-members-up" => "Pull members up to base type or interface",
-            "introduce-local-variable" => "Introduce local variable for expression",
-            "introduce-parameter" => "Introduce parameter to method",
-            "introduce-using-statement" => "Introduce using statement for disposable objects",
-            "add-named-argument" => "Add named arguments to method calls",
-            "add-await" => "Add await to an async call",
-            "add-debugger-display" => "Add DebuggerDisplay attribute to a class",
-            "find-symbols" => "Find symbols matching a pattern (including partial matches)",
-            "find-references" => "Find all references to a symbol at the specified location",
-            "find-usages" => "Find all usages of a symbol, type, or member",
-            "find-dependencies" => "Find dependencies and create a dependency graph from a type",
-            "find-duplicate-code" => "Find code that is substantially similar to existing code",
-            _ => $"C# refactoring command: {commandName}"
-        };
+        return new Dictionary<string, (Type CommandType, string Description)>(CastCommandRegistry.Commands);
     }
 
     public async Task<ListToolsResult> HandleListToolsAsync(RequestContext<ListToolsRequestParams> context, CancellationToken cancellationToken)
