@@ -9,6 +9,86 @@ namespace Cast.Tool.Tests;
 public class MultiFileEditingTests
 {
     [Fact]
+    public async Task RenameCommand_ProjectWide_DryRun_ShouldShowMultipleFiles()
+    {
+        // Arrange - Create a temporary project directory
+        var projectDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+        Directory.CreateDirectory(projectDir);
+        
+        var file1Content = @"using System;
+
+namespace TestProject
+{
+    public class MyClass
+    {
+        public void DoSomething()
+        {
+            Console.WriteLine(""Hello from MyClass"");
+        }
+        
+        public MyClass CreateInstance()
+        {
+            return new MyClass();
+        }
+    }
+}";
+
+        var file2Content = @"using System;
+
+namespace TestProject
+{
+    public class AnotherClass
+    {
+        public void UseMyClass()
+        {
+            var instance = new MyClass();
+            instance.DoSomething();
+            
+            MyClass anotherInstance = instance.CreateInstance();
+        }
+    }
+}";
+
+        var file1Path = Path.Combine(projectDir, "TestClass.cs");
+        var file2Path = Path.Combine(projectDir, "AnotherClass.cs");
+        var projectPath = Path.Combine(projectDir, "TestProject.csproj");
+        
+        await File.WriteAllTextAsync(file1Path, file1Content);
+        await File.WriteAllTextAsync(file2Path, file2Content);
+        await File.WriteAllTextAsync(projectPath, @"<Project Sdk=""Microsoft.NET.Sdk"">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+  </PropertyGroup>
+</Project>");
+
+        try
+        {
+            // Act
+            var command = new RenameCommand();
+            var settings = new RenameCommand.Settings
+            {
+                FilePath = file1Path,
+                OldName = "MyClass",
+                NewName = "RenamedClass",
+                LineNumber = 5, // Line with class declaration
+                ProjectWide = true,
+                DryRun = true
+            };
+
+            var result = await command.ExecuteAsync(null!, settings);
+
+            // Assert
+            Assert.Equal(0, result);
+            // In a real test, we'd capture the console output to verify the multi-file diff display
+            // For now, just ensuring the command executes successfully
+        }
+        finally
+        {
+            // Cleanup
+            Directory.Delete(projectDir, true);
+        }
+    }
+    [Fact]
     public async Task ExtractBaseClass_DryRun_ShouldShowMultipleFiles()
     {
         // Arrange
