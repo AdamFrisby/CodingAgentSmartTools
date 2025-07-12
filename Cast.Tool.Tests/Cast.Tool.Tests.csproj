@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cast.Tool\Cast.Tool.csproj" />
+    <ProjectReference Include="..\Cast.Tool.McpServer\Cast.Tool.McpServer.csproj" />
   </ItemGroup>
 
 </Project>
