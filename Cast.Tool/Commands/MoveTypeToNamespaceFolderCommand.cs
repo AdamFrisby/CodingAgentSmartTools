@@ -73,16 +73,17 @@ namespace Cast.Tool.Commands
                     AnsiConsole.MarkupLine("[green]Would move type '{0}' to namespace '{1}' in {2}[/]", 
                         settings.TypeName, settings.TargetNamespace, newFileName);
                     
-                    // Show diff for the original file (with type removed)
+                    // Use the new multi-file diff format
                     var dryRunModifiedCode = modifiedRoot.ToFullString();
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
-                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
                     
-                    // Show the new file that would be created
+                    var fileChanges = new Dictionary<string, (string original, string modified)>
+                    {
+                        { settings.FilePath, (sourceCode, dryRunModifiedCode) },
+                        { newFileName, ("", extractedTypeCode) }
+                    };
+                    
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]New file would be created: {0}[/]", newFileName);
-                    DiffUtility.DisplayDiff("", extractedTypeCode, newFileName);
+                    DiffUtility.DisplayMultiFileDiff(fileChanges);
                     
                     return 0;
                 }
