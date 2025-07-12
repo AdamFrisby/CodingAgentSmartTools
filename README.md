@@ -18,7 +18,7 @@ dotnet build
 
 ## Usage
 
-The `cast` tool provides command-line access to 56 C# refactoring operations using the Roslyn compiler services.
+The `cast` tool provides command-line access to 56 C# refactoring operations using the Roslyn compiler services, plus 7 additional LSP-powered commands for multi-language code analysis.
 
 ### Command Categories
 
@@ -107,6 +107,17 @@ The `cast` tool provides command-line access to 56 C# refactoring operations usi
 - **find-dependencies** - Find dependencies and create a dependency graph from a type
 - **find-duplicate-code** - Find code that is substantially similar to existing code
 
+#### Language Server Protocol (LSP) Commands
+- **lsp-goto-definition** - Navigate to symbol definitions using LSP server
+- **lsp-find-references** - Find all references to a symbol using LSP server
+- **lsp-hover** - Get hover information and documentation using LSP server
+- **lsp-workspace-symbols** - Search symbols across the workspace using LSP server
+- **lsp-document-symbols** - Get hierarchical symbols in a document using LSP server
+- **lsp-code-actions** - List available code actions and quick fixes using LSP server
+- **lsp-format-document** - Format documents using LSP server
+
+**Supported Languages via LSP**: C#, TypeScript, JavaScript, Python, Java, C/C++, Go, Rust, Ruby, PHP
+
 **Analysis Output Format**: All analysis tools output results in grep-style format: `Filename:Line <copy of line>`
 
 ### Common Options
@@ -162,11 +173,20 @@ cast find-references Calculator.cs --line 15 --column 12
 cast find-usages Service.cs --line 8 --column 20
 cast find-dependencies --type "Calculator" MyClass.cs
 cast find-duplicate-code LargeFile.cs
+
+# LSP-powered multi-language analysis
+cast lsp-goto-definition Calculator.cs --line 10 --column 5
+cast lsp-find-references Service.cs --line 15 --column 8
+cast lsp-hover MyClass.cs --line 8 --column 12
+cast lsp-workspace-symbols MyProject.cs "MyClass"
+cast lsp-document-symbols Calculator.cs
+cast lsp-code-actions ErrorFile.cs --line 5 --column 10
+cast lsp-format-document MessyCode.cs --dry-run
 ```
 
 ## Implemented Commands
 
-✅ **61 Complete Commands** - All major C# refactoring operations plus powerful analysis tools are now implemented:
+✅ **68 Complete Commands** - All major C# refactoring operations plus powerful analysis tools and multi-language LSP support are now implemented:
 
 **Code Analysis & Cleanup** (6 commands)  
 **Symbol Refactoring** (4 commands)  
@@ -180,32 +200,38 @@ cast find-duplicate-code LargeFile.cs
 **Variable & Parameter Management** (4 commands)  
 **Async & Debugging** (2 commands)  
 **Code Analysis Tools** (5 commands)  
+**Language Server Protocol Commands** (7 commands)  
 
-The tool now provides comprehensive coverage of C# refactoring operations plus powerful analysis capabilities, making it ideal for coding agents and automated workflows that need safe, precise code transformations and deep code analysis.
+The tool now provides comprehensive coverage of C# refactoring operations plus powerful analysis capabilities for multiple programming languages through LSP integration, making it ideal for coding agents and automated workflows that need safe, precise code transformations and deep code analysis across diverse codebases.
 
 ## Architecture
 
 The tool is built using:
 - **Roslyn** for C# code analysis and transformation
+- **Language Server Protocol (LSP)** for multi-language code analysis via external language servers
+- **StreamJsonRpc** for LSP client communication
 - **Spectre.Console.Cli** for command-line interface
 - **xUnit** for testing
 
 Each refactoring command follows a consistent pattern:
 1. Parse and validate input arguments
-2. Load and analyze the C# source file using Roslyn
-3. Apply the requested transformation
-4. Output the modified code
+2. Load and analyze the source file using Roslyn (for C#) or LSP (for other languages)
+3. Apply the requested transformation or analysis
+4. Output the modified code or analysis results
+
+**LSP Integration**: The tool can automatically detect and use appropriate language servers for different file types, enabling sophisticated code analysis across multiple programming languages including TypeScript, Python, Java, Go, Rust, and more.
 
 ## Contributing
 
-The core refactoring functionality is now complete with 56 commands implemented. To contribute additional features or improvements:
+The core refactoring functionality is now complete with 61 commands implemented, plus 7 LSP-powered commands for multi-language support. To contribute additional features or improvements:
 
 1. **Enhancement suggestions**: Open an issue to discuss new features or command improvements
-2. **Bug fixes**: Create a new command class inheriting from `Command<TSettings>`
-3. **New commands**: Implement additional refactoring logic using Roslyn APIs
-4. **Testing**: Register the command in `Program.cs` and add comprehensive tests in `Cast.Tool.Tests`
+2. **Bug fixes**: Create a new command class inheriting from `Command<TSettings>` (or use `LspHelper` for LSP commands)
+3. **New commands**: Implement additional refactoring logic using Roslyn APIs or LSP protocol
+4. **LSP integrations**: Add support for additional language servers or LSP features
+5. **Testing**: Register the command in `Program.cs` and add comprehensive tests in `Cast.Tool.Tests`
 
-The established pattern makes it straightforward to add specialized refactoring operations for specific use cases or domain-specific transformations.
+The established pattern makes it straightforward to add specialized refactoring operations for specific use cases, domain-specific transformations, or new language server integrations.
 
 ## License
 
