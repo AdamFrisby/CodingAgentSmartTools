@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cast.Tool", "Cast.Tool\Cast
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cast.Tool.Tests", "Cast.Tool.Tests\Cast.Tool.Tests.csproj", "{032079F8-AE07-4EAA-8918-6451770462FF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cast.Tool.McpServer", "Cast.Tool.McpServer\Cast.Tool.McpServer.csproj", "{B9DF6717-8BB2-45E1-8295-6BB4F6E05B24}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{032079F8-AE07-4EAA-8918-6451770462FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{032079F8-AE07-4EAA-8918-6451770462FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{032079F8-AE07-4EAA-8918-6451770462FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9DF6717-8BB2-45E1-8295-6BB4F6E05B24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9DF6717-8BB2-45E1-8295-6BB4F6E05B24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9DF6717-8BB2-45E1-8295-6BB4F6E05B24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9DF6717-8BB2-45E1-8295-6BB4F6E05B24}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

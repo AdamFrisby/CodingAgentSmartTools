@@ -189,6 +189,7 @@ The tool is built using:
 - **Roslyn** for C# code analysis and transformation
 - **Spectre.Console.Cli** for command-line interface
 - **xUnit** for testing
+- **ModelContextProtocol** for MCP server integration
 
 Each refactoring command follows a consistent pattern:
 1. Parse and validate input arguments
@@ -196,14 +197,62 @@ Each refactoring command follows a consistent pattern:
 3. Apply the requested transformation
 4. Output the modified code
 
+## MCP Server
+
+The project includes an **MCP (Model Context Protocol) Server** that exposes all Cast refactoring commands as tools for AI agents and other clients.
+
+### Running the MCP Server
+
+```bash
+dotnet run --project Cast.Tool.McpServer/Cast.Tool.McpServer.csproj
+```
+
+The MCP server provides:
+- **61+ Refactoring Tools**: All Cast commands exposed with proper JSON schemas
+- **Standardized Interface**: MCP protocol for easy integration with AI agents
+- **Error Handling**: Comprehensive validation and error reporting
+- **Real-time Processing**: Direct integration with Cast's refactoring engine
+
+### MCP Tool Examples
+
+```bash
+# List all available tools
+# Returns: cast_rename, cast_extract_method, cast_add_using, etc.
+
+# Rename a symbol
+{
+  "name": "cast_rename",
+  "arguments": {
+    "file_path": "MyClass.cs",
+    "line_number": 15,
+    "old_name": "oldName",
+    "new_name": "newName"
+  }
+}
+
+# Extract a method
+{
+  "name": "cast_extract_method", 
+  "arguments": {
+    "file_path": "Calculator.cs",
+    "method_name": "CalculateTotal",
+    "line_number": 10,
+    "end_line_number": 15
+  }
+}
+```
+
+See [Cast.Tool.McpServer/README.md](Cast.Tool.McpServer/README.md) for complete MCP server documentation.
+
 ## Contributing
 
-The core refactoring functionality is now complete with 56 commands implemented. To contribute additional features or improvements:
+The core refactoring functionality is now complete with 61 commands implemented. To contribute additional features or improvements:
 
 1. **Enhancement suggestions**: Open an issue to discuss new features or command improvements
 2. **Bug fixes**: Create a new command class inheriting from `Command<TSettings>`
 3. **New commands**: Implement additional refactoring logic using Roslyn APIs
 4. **Testing**: Register the command in `Program.cs` and add comprehensive tests in `Cast.Tool.Tests`
+5. **MCP Integration**: New commands are automatically exposed via the MCP server
 
 The established pattern makes it straightforward to add specialized refactoring operations for specific use cases or domain-specific transformations.
 
