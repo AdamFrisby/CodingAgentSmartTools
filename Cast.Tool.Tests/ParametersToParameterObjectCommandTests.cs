@@ -270,4 +270,129 @@ namespace MyProject
                 File.Delete(csFile);
         }
     }
+
+    [Fact]
+    public async Task ParametersToParameterObject_WithCallSites_ShouldUpdateCallers()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace MyProject
+{
+    public class Calculator
+    {
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+
+        public void TestMethod()
+        {
+            var result1 = Add(5, 10);
+            var result2 = Add(3, 7);
+            Console.WriteLine(result1 + result2);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        try
+        {
+            // Act
+            var command = new ParametersToParameterObjectCommand();
+            var settings = new ParametersToParameterObjectCommand.Settings
+            {
+                FilePath = csFile,
+                LineNumber = 7, // Line with public int Add
+                ParameterObjectName = "AddParams",
+                ParameterObjectType = "class",
+                UpdateCallers = true,
+                DryRun = false
+            };
+
+            var result = await command.ExecuteAsync(null!, settings);
+            Assert.Equal(0, result);
+
+            // Verify the transformation
+            var modifiedCode = await File.ReadAllTextAsync(csFile);
+            Assert.Contains("public int Add(AddParams args)", modifiedCode);
+            Assert.Contains("return args.a + args.b;", modifiedCode);
+            Assert.Contains("public class AddParams", modifiedCode);
+            Assert.Contains("var result1 = Add(new AddParams(5, 10));", modifiedCode);
+            Assert.Contains("var result2 = Add(new AddParams(3, 7));", modifiedCode);
+            Assert.Contains("this.a = a;", modifiedCode);
+            Assert.Contains("this.b = b;", modifiedCode);
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(csFile))
+                File.Delete(csFile);
+        }
+    }
+
+    [Fact]
+    public async Task ParametersToParameterObject_WithCallSitesDisabled_ShouldNotUpdateCallers()
+    {
+        // Arrange
+        var testCode = @"using System;
+
+namespace MyProject
+{
+    public class Calculator
+    {
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+
+        public void TestMethod()
+        {
+            var result = Add(5, 10);
+            Console.WriteLine(result);
+        }
+    }
+}";
+        
+        var tempFile = Path.GetTempFileName();
+        var csFile = Path.ChangeExtension(tempFile, ".cs");
+        File.Move(tempFile, csFile);
+        await File.WriteAllTextAsync(csFile, testCode);
+
+        try
+        {
+            // Act
+            var command = new ParametersToParameterObjectCommand();
+            var settings = new ParametersToParameterObjectCommand.Settings
+            {
+                FilePath = csFile,
+                LineNumber = 7, // Line with public int Add
+                ParameterObjectName = "AddParams",
+                ParameterObjectType = "class",
+                UpdateCallers = false,
+                DryRun = false
+            };
+
+            var result = await command.ExecuteAsync(null!, settings);
+            Assert.Equal(0, result);
+
+            // Verify the transformation
+            var modifiedCode = await File.ReadAllTextAsync(csFile);
+            Assert.Contains("public int Add(AddParams args)", modifiedCode);
+            Assert.Contains("return args.a + args.b;", modifiedCode);
+            Assert.Contains("public class AddParams", modifiedCode);
+            // Call site should remain unchanged
+            Assert.Contains("var result = Add(5, 10);", modifiedCode);
+        }
+        finally
+        {
+            // Cleanup
+            if (File.Exists(csFile))
+                File.Delete(csFile);
+        }
+    }
 }

@@ -44,6 +44,11 @@ public class ParametersToParameterObjectCommand : Command<ParametersToParameterO
         [Description("Show what changes would be made without applying them")]
         [DefaultValue(false)]
         public bool DryRun { get; init; } = false;
+
+        [CommandOption("--update-callers")]
+        [Description("Automatically update call sites to use the new parameter object")]
+        [DefaultValue(true)]
+        public bool UpdateCallers { get; init; } = true;
     }
 
     public override int Execute(CommandContext context, Settings settings)
@@ -118,8 +123,21 @@ public class ParametersToParameterObjectCommand : Command<ParametersToParameterO
 
             var newRoot = root.ReplaceNode(containingType, updatedContainingType);
 
-            // TODO: Find and update all call sites (for now, just show a warning)
-            AnsiConsole.WriteLine("[yellow]Note: Call sites will need to be updated manually in this version[/]");
+            // Find and update call sites if requested
+            if (settings.UpdateCallers)
+            {
+                var methodSymbol = model.GetDeclaredSymbol(method);
+                if (methodSymbol != null)
+                {
+                    // We need to work with the original semantic model to find call sites
+                    // because the new syntax tree doesn't have a semantic model yet
+                    newRoot = UpdateCallSites(root, model, methodSymbol, parameterObjectName, settings.ParameterObjectType, newRoot);
+                }
+            }
+            else
+            {
+                AnsiConsole.WriteLine("[yellow]Note: Call sites will need to be updated manually (use --update-callers to enable automatic updates)[/]");
+            }
 
             var result = newRoot.NormalizeWhitespace().ToFullString();
 
@@ -255,7 +273,10 @@ public class ParametersToParameterObjectCommand : Command<ParametersToParameterO
             SyntaxFactory.ExpressionStatement(
                 SyntaxFactory.AssignmentExpression(
                     SyntaxKind.SimpleAssignmentExpression,
-                    SyntaxFactory.IdentifierName(p.Identifier.ValueText),
+                    SyntaxFactory.MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        SyntaxFactory.ThisExpression(),
+                        SyntaxFactory.IdentifierName(p.Identifier.ValueText)),
                     SyntaxFactory.IdentifierName(p.Identifier.ValueText))));
 
         var body = SyntaxFactory.Block(assignments);
@@ -328,5 +349,151 @@ public class ParametersToParameterObjectCommand : Command<ParametersToParameterO
     {
         // Check if this identifier is in a parameter declaration context
         return identifier.Ancestors().OfType<ParameterSyntax>().Any();
+    }
+
+    private SyntaxNode UpdateCallSites(SyntaxNode originalRoot, SemanticModel model, IMethodSymbol methodSymbol, string parameterObjectName, string parameterObjectType, SyntaxNode newRoot)
+    {
+        var callSiteUpdates = new Dictionary<SyntaxNode, SyntaxNode>();
+        var invocations = originalRoot.DescendantNodes().OfType<InvocationExpressionSyntax>().ToList();
+
+        foreach (var invocation in invocations)
+        {
+            var symbolInfo = model.GetSymbolInfo(invocation);
+            if (symbolInfo.Symbol is IMethodSymbol invokedMethod &&
+                SymbolEqualityComparer.Default.Equals(invokedMethod.OriginalDefinition, methodSymbol.OriginalDefinition))
+            {
+                // This is a call to our refactored method
+                var updatedCall = CreateUpdatedMethodCall(invocation, parameterObjectName, parameterObjectType);
+                if (updatedCall != null)
+                {
+                    callSiteUpdates[invocation] = updatedCall;
+                }
+            }
+        }
+
+        if (callSiteUpdates.Any())
+        {
+            // Apply call site updates to the new root by finding equivalent nodes
+            var finalUpdates = new Dictionary<SyntaxNode, SyntaxNode>();
+            foreach (var kvp in callSiteUpdates)
+            {
+                var originalCall = kvp.Key;
+                var updatedCall = kvp.Value;
+                
+                // Find the equivalent node in the new root
+                var equivalentNode = FindEquivalentNode(newRoot, originalCall);
+                if (equivalentNode != null)
+                {
+                    finalUpdates[equivalentNode] = updatedCall;
+                }
+            }
+            
+            if (finalUpdates.Any())
+            {
+                newRoot = newRoot.ReplaceNodes(finalUpdates.Keys, (original, rewritten) => finalUpdates[original]);
+                AnsiConsole.WriteLine($"[green]Updated {finalUpdates.Count} call site(s) to use parameter object[/]");
+            }
+        }
+        else
+        {
+            AnsiConsole.WriteLine("[yellow]No call sites found to update[/]");
+        }
+
+        return newRoot;
+    }
+
+    private SyntaxNode? FindEquivalentNode(SyntaxNode newRoot, SyntaxNode originalNode)
+    {
+        // Find a node in the new tree that corresponds to the original node
+        // by comparing the structure rather than text spans (which may have changed)
+        if (originalNode is InvocationExpressionSyntax originalInvocation)
+        {
+            return newRoot.DescendantNodes()
+                .OfType<InvocationExpressionSyntax>()
+                .FirstOrDefault(inv => AreInvocationsEquivalent(originalInvocation, inv));
+        }
+        
+        return null;
+    }
+
+    private bool AreInvocationsEquivalent(InvocationExpressionSyntax original, InvocationExpressionSyntax candidate)
+    {
+        // Compare the method name
+        var originalName = GetMethodName(original.Expression);
+        var candidateName = GetMethodName(candidate.Expression);
+        
+        if (originalName != candidateName)
+            return false;
+
+        // Compare argument count and structure
+        if (original.ArgumentList.Arguments.Count != candidate.ArgumentList.Arguments.Count)
+            return false;
+
+        // Compare each argument (basic comparison of text representation)
+        for (int i = 0; i < original.ArgumentList.Arguments.Count; i++)
+        {
+            var originalArg = original.ArgumentList.Arguments[i].ToString().Trim();
+            var candidateArg = candidate.ArgumentList.Arguments[i].ToString().Trim();
+            if (originalArg != candidateArg)
+                return false;
+        }
+
+        return true;
+    }
+
+    private string GetMethodName(ExpressionSyntax expression)
+    {
+        return expression switch
+        {
+            IdentifierNameSyntax identifier => identifier.Identifier.ValueText,
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.ValueText,
+            _ => ""
+        };
+    }
+
+    private InvocationExpressionSyntax? CreateUpdatedMethodCall(InvocationExpressionSyntax originalCall, string parameterObjectName, string parameterObjectType)
+    {
+        if (originalCall.ArgumentList.Arguments.Count == 0)
+            return null;
+
+        // Create the parameter object instantiation
+        var objectCreation = parameterObjectType.ToLower() switch
+        {
+            "record" => CreateRecordInstantiation(parameterObjectName, originalCall.ArgumentList.Arguments),
+            "struct" => CreateStructInstantiation(parameterObjectName, originalCall.ArgumentList.Arguments),
+            _ => CreateClassInstantiation(parameterObjectName, originalCall.ArgumentList.Arguments)
+        };
+
+        // Create new argument list with the parameter object
+        var newArgument = SyntaxFactory.Argument(objectCreation);
+        var newArgumentList = SyntaxFactory.ArgumentList(
+            SyntaxFactory.SingletonSeparatedList(newArgument));
+
+        // Return the updated invocation
+        return originalCall.WithArgumentList(newArgumentList);
+    }
+
+    private ExpressionSyntax CreateClassInstantiation(string parameterObjectName, SeparatedSyntaxList<ArgumentSyntax> arguments)
+    {
+        return SyntaxFactory.ObjectCreationExpression(
+            SyntaxFactory.IdentifierName(parameterObjectName))
+            .WithArgumentList(SyntaxFactory.ArgumentList(arguments))
+            .NormalizeWhitespace();
+    }
+
+    private ExpressionSyntax CreateStructInstantiation(string parameterObjectName, SeparatedSyntaxList<ArgumentSyntax> arguments)
+    {
+        return SyntaxFactory.ObjectCreationExpression(
+            SyntaxFactory.IdentifierName(parameterObjectName))
+            .WithArgumentList(SyntaxFactory.ArgumentList(arguments))
+            .NormalizeWhitespace();
+    }
+
+    private ExpressionSyntax CreateRecordInstantiation(string parameterObjectName, SeparatedSyntaxList<ArgumentSyntax> arguments)
+    {
+        return SyntaxFactory.ObjectCreationExpression(
+            SyntaxFactory.IdentifierName(parameterObjectName))
+            .WithArgumentList(SyntaxFactory.ArgumentList(arguments))
+            .NormalizeWhitespace();
     }
 }
