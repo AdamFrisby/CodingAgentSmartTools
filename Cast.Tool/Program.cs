@@ -191,6 +191,16 @@ app.Configure(config =>
         
     config.AddCommand<FindDuplicateCodeCommand>("find-duplicate-code")
         .WithDescription("Find code that is substantially similar to existing code");
+        
+    // Type analysis commands
+    config.AddCommand<DescribeTypeCommand>("describe-type")
+        .WithDescription("Print a list of the properties/functions/members of a type");
+        
+    config.AddCommand<WhatTypeCommand>("what-type")
+        .WithDescription("Given a symbol, return the type of the symbol");
+        
+    config.AddCommand<ListTypesCommand>("list-types")
+        .WithDescription("List the types available in a project");
 });
 
 return app.Run(args);
