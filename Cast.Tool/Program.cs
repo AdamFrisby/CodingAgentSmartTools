@@ -191,6 +191,9 @@ app.Configure(config =>
         
     config.AddCommand<FindDuplicateCodeCommand>("find-duplicate-code")
         .WithDescription("Find code that is substantially similar to existing code");
+        
+    config.AddCommand<ParametersToParameterObjectCommand>("parameters-to-object")
+        .WithDescription("Convert method parameters to parameter object");
 });
 
 return app.Run(args);
