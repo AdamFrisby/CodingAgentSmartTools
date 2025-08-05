@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
+using Microsoft.CodeAnalysis.FindSymbols;
 using Spectre.Console;
 using Spectre.Console.Cli;
 using Cast.Tool.Core;
@@ -39,6 +40,15 @@ public class RenameCommand : Command<RenameCommand.Settings>
         [Description("Output file path (defaults to overwriting the input file)")]
         public string? OutputPath { get; init; }
 
+        [CommandOption("--project-path")]
+        [Description("Path to the project directory (for project-wide semantic renaming)")]
+        public string? ProjectPath { get; init; }
+
+        [CommandOption("--project-wide")]
+        [Description("Perform project-wide semantic renaming (finds and updates all references)")]
+        [DefaultValue(false)]
+        public bool ProjectWide { get; init; } = false;
+
         [CommandOption("--dry-run")]
         [Description("Show what changes would be made without applying them")]
         [DefaultValue(false)]
@@ -52,72 +62,211 @@ public class RenameCommand : Command<RenameCommand.Settings>
 
     public async Task<int> ExecuteAsync(CommandContext context, Settings settings)
     {
-        var renameSettings = settings;
-        
         try
         {
             ValidateInputs(settings);
             
-            if (string.IsNullOrWhiteSpace(renameSettings.OldName))
+            if (string.IsNullOrWhiteSpace(settings.OldName))
             {
                 AnsiConsole.WriteLine("[red]Error: Old name is required[/]");
                 return 1;
             }
 
-            if (string.IsNullOrWhiteSpace(renameSettings.NewName))
+            if (string.IsNullOrWhiteSpace(settings.NewName))
             {
                 AnsiConsole.WriteLine("[red]Error: New name is required[/]");
                 return 1;
             }
 
-            var engine = new RefactoringEngine();
-            var (document, tree, model) = await engine.LoadDocumentAsync(settings.FilePath);
-            
-            var position = engine.GetTextSpanFromPosition(tree, settings.LineNumber, settings.ColumnNumber);
-            var root = await tree.GetRootAsync();
-            var node = root.FindNode(position);
-            
-            // Find the symbol at the specified position
-            var symbol = model.GetSymbolInfo(node).Symbol;
-            if (symbol == null)
+            if (settings.ProjectWide)
             {
-                // Try to get declared symbol if it's a declaration
-                symbol = model.GetDeclaredSymbol(node);
+                return await PerformProjectWideRename(settings);
             }
-
-            if (symbol == null)
+            else
             {
-                AnsiConsole.WriteLine($"[yellow]Warning: No symbol found at line {settings.LineNumber}, column {settings.ColumnNumber}[/]");
-                return 1;
+                return await PerformSingleFileRename(settings);
             }
-
-            if (symbol.Name != renameSettings.OldName)
-            {
-                AnsiConsole.WriteLine($"[yellow]Warning: Found symbol '{symbol.Name}' but expected '{renameSettings.OldName}'[/]");
-                return 1;
-            }
-
-            // Perform the rename to get the modified content
-            var result = await PerformSimpleRename(settings.FilePath, renameSettings.OldName, renameSettings.NewName);
-            
-            if (settings.DryRun)
-            {
-                var originalContent = await File.ReadAllTextAsync(settings.FilePath);
-                DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
-                return 0;
-            }
-            
-            var outputPath = settings.OutputPath ?? settings.FilePath;
-            await File.WriteAllTextAsync(outputPath, result);
-            
-            AnsiConsole.WriteLine($"[green]Successfully renamed '{renameSettings.OldName}' to '{renameSettings.NewName}' in {outputPath}[/]");
-            return 0;
         }
         catch (Exception ex)
         {
             AnsiConsole.WriteLine($"[red]Error: {ex.Message}[/]");
             return 1;
         }
+    }
+
+    private async Task<int> PerformSingleFileRename(Settings settings)
+    {
+        var engine = new RefactoringEngine();
+        var (document, tree, model) = await engine.LoadDocumentAsync(settings.FilePath);
+        
+        var position = engine.GetTextSpanFromPosition(tree, settings.LineNumber, settings.ColumnNumber);
+        var root = await tree.GetRootAsync();
+        var node = root.FindNode(position);
+        
+        // Find the symbol at the specified position
+        var symbol = model.GetSymbolInfo(node).Symbol;
+        if (symbol == null)
+        {
+            // Try to get declared symbol if it's a declaration
+            symbol = model.GetDeclaredSymbol(node);
+        }
+
+        if (symbol == null)
+        {
+            AnsiConsole.WriteLine($"[yellow]Warning: No symbol found at line {settings.LineNumber}, column {settings.ColumnNumber}[/]");
+            return 1;
+        }
+
+        if (symbol.Name != settings.OldName)
+        {
+            AnsiConsole.WriteLine($"[yellow]Warning: Found symbol '{symbol.Name}' but expected '{settings.OldName}'[/]");
+            return 1;
+        }
+
+        // Perform the rename to get the modified content
+        var result = await PerformSimpleRename(settings.FilePath, settings.OldName, settings.NewName);
+        
+        if (settings.DryRun)
+        {
+            var originalContent = await File.ReadAllTextAsync(settings.FilePath);
+            DiffUtility.DisplayDiff(originalContent, result, settings.FilePath);
+            return 0;
+        }
+        
+        var outputPath = settings.OutputPath ?? settings.FilePath;
+        await File.WriteAllTextAsync(outputPath, result);
+        
+        AnsiConsole.WriteLine($"[green]Successfully renamed '{settings.OldName}' to '{settings.NewName}' in {outputPath}[/]");
+        return 0;
+    }
+
+    private async Task<int> PerformProjectWideRename(Settings settings)
+    {
+        var projectPath = RefactoringEngine.ResolveProjectPath(settings.FilePath, settings.ProjectPath);
+        if (projectPath == null)
+        {
+            AnsiConsole.WriteLine("[red]Error: Could not find project directory. Use --project-path to specify explicitly.[/]");
+            return 1;
+        }
+
+        AnsiConsole.WriteLine($"[blue]Using project path: {projectPath}[/]");
+
+        // Find all C# files in the project
+        var csFiles = Directory.GetFiles(projectPath, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains("bin") && !f.Contains("obj"))
+            .ToList();
+
+        var targetFilePath = Path.GetFullPath(settings.FilePath);
+        if (!csFiles.Any(f => Path.GetFullPath(f) == targetFilePath))
+        {
+            AnsiConsole.WriteLine("[red]Error: Specified file is not part of the detected project.[/]");
+            AnsiConsole.WriteLine($"[yellow]Looking for: {targetFilePath}[/]");
+            AnsiConsole.WriteLine($"[yellow]Found files: {string.Join(", ", csFiles.Select(Path.GetFullPath))}[/]");
+            return 1;
+        }
+
+        AnsiConsole.WriteLine($"[blue]Found {csFiles.Count} C# files in project[/]");
+
+        // Build workspace with all project files
+        var workspace = await CreateWorkspaceAsync(projectPath, csFiles);
+        var project = workspace.CurrentSolution.Projects.First();
+        
+        // Find the target document and symbol
+        var targetDocument = project.Documents.FirstOrDefault(d => 
+            d.FilePath != null && Path.GetFullPath(d.FilePath) == targetFilePath);
+            
+        if (targetDocument == null)
+        {
+            AnsiConsole.WriteLine("[red]Error: Could not find target file in workspace.[/]");
+            AnsiConsole.WriteLine($"[yellow]Looking for: {targetFilePath}[/]");
+            AnsiConsole.WriteLine($"[yellow]Documents in workspace: {string.Join(", ", project.Documents.Select(d => d.FilePath ?? "null"))}[/]");
+            return 1;
+        }
+
+        var syntaxTree = await targetDocument.GetSyntaxTreeAsync();
+        var semanticModel = await targetDocument.GetSemanticModelAsync();
+        
+        if (syntaxTree == null || semanticModel == null)
+        {
+            AnsiConsole.WriteLine("[red]Error: Could not load semantic model for target file.[/]");
+            return 1;
+        }
+
+        var position = new RefactoringEngine().GetTextSpanFromPosition(syntaxTree, settings.LineNumber, settings.ColumnNumber);
+        var root = await syntaxTree.GetRootAsync();
+        var node = root.FindNode(position);
+        
+        // Find the symbol at the specified position
+        var symbol = semanticModel.GetSymbolInfo(node).Symbol;
+        if (symbol == null)
+        {
+            symbol = semanticModel.GetDeclaredSymbol(node);
+        }
+
+        if (symbol == null)
+        {
+            AnsiConsole.WriteLine($"[yellow]Warning: No symbol found at line {settings.LineNumber}, column {settings.ColumnNumber}[/]");
+            return 1;
+        }
+
+        if (symbol.Name != settings.OldName)
+        {
+            AnsiConsole.WriteLine($"[yellow]Warning: Found symbol '{symbol.Name}' but expected '{settings.OldName}'[/]");
+            return 1;
+        }
+
+        AnsiConsole.WriteLine($"[blue]Found symbol: {symbol.Name} of type {symbol.Kind}[/]");
+
+        // Find all references to the symbol across the project
+        var references = await SymbolFinder.FindReferencesAsync(symbol, workspace.CurrentSolution);
+        var changedFiles = new Dictionary<string, (string original, string modified)>();
+
+        // Process each file that contains references
+        foreach (var reference in references)
+        {
+            foreach (var location in reference.Locations)
+            {
+                var document = workspace.CurrentSolution.GetDocument(location.Document.Id);
+                if (document?.FilePath == null) continue;
+
+                var filePath = Path.GetFullPath(document.FilePath);
+                
+                if (!changedFiles.ContainsKey(filePath))
+                {
+                    var originalContent = await File.ReadAllTextAsync(filePath);
+                    changedFiles[filePath] = (originalContent, originalContent);
+                }
+
+                // Apply simple text replacement for now
+                // In a more sophisticated implementation, this would use Roslyn's rename service
+                var (original, current) = changedFiles[filePath];
+                var modified = current.Replace(settings.OldName, settings.NewName);
+                changedFiles[filePath] = (original, modified);
+            }
+        }
+
+        if (changedFiles.Count == 0)
+        {
+            AnsiConsole.WriteLine($"[yellow]No references to '{settings.OldName}' found in the project.[/]");
+            return 0;
+        }
+
+        if (settings.DryRun)
+        {
+            AnsiConsole.MarkupLine($"[green]Would rename '{settings.OldName}' to '{settings.NewName}' across {changedFiles.Count} file(s)[/]");
+            AnsiConsole.WriteLine();
+            DiffUtility.DisplayMultiFileDiff(changedFiles);
+            return 0;
+        }
+
+        // Apply changes to all files
+        foreach (var (filePath, (_, modified)) in changedFiles)
+        {
+            await File.WriteAllTextAsync(filePath, modified);
+        }
+
+        AnsiConsole.WriteLine($"[green]Successfully renamed '{settings.OldName}' to '{settings.NewName}' across {changedFiles.Count} file(s)[/]");
+        return 0;
     }
 
     private async Task<string> PerformSimpleRename(string filePath, string oldName, string newName)
@@ -131,6 +280,72 @@ public class RenameCommand : Command<RenameCommand.Settings>
         var newRoot = rewriter.Visit(root);
         
         return newRoot.ToFullString();
+    }
+
+    private async Task<Microsoft.CodeAnalysis.Workspace> CreateWorkspaceAsync(string projectPath, List<string> csFiles)
+    {
+        var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
+        var projectId = Microsoft.CodeAnalysis.ProjectId.CreateNewId();
+        
+        var projectInfo = Microsoft.CodeAnalysis.ProjectInfo.Create(
+            projectId,
+            Microsoft.CodeAnalysis.VersionStamp.Create(),
+            "TempProject",
+            "TempProject",
+            Microsoft.CodeAnalysis.LanguageNames.CSharp,
+            metadataReferences: GetMetadataReferences(),
+            compilationOptions: new CSharpCompilationOptions(Microsoft.CodeAnalysis.OutputKind.DynamicallyLinkedLibrary));
+
+        var project = workspace.AddProject(projectInfo);
+
+        // Add all C# files to the project
+        foreach (var csFile in csFiles)
+        {
+            var sourceText = await File.ReadAllTextAsync(csFile);
+            var documentId = Microsoft.CodeAnalysis.DocumentId.CreateNewId(projectId);
+            
+            project = project.AddDocument(
+                name: Path.GetFileName(csFile),
+                text: sourceText,
+                filePath: csFile).Project;
+        }
+
+        // Update the workspace with the final project
+        workspace.TryApplyChanges(project.Solution);
+        
+        return workspace;
+    }
+
+    private static IEnumerable<Microsoft.CodeAnalysis.MetadataReference> GetMetadataReferences()
+    {
+        var references = new List<Microsoft.CodeAnalysis.MetadataReference>();
+        
+        // Add basic .NET references
+        var dotnetAssemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
+        if (dotnetAssemblyPath != null)
+        {
+            var assemblyFiles = new[]
+            {
+                "System.Runtime.dll",
+                "System.Private.CoreLib.dll",
+                "System.Console.dll",
+                "System.Collections.dll",
+                "System.Linq.dll",
+                "System.Text.RegularExpressions.dll",
+                "System.Threading.dll"
+            };
+
+            foreach (var assemblyFile in assemblyFiles)
+            {
+                var path = Path.Combine(dotnetAssemblyPath, assemblyFile);
+                if (File.Exists(path))
+                {
+                    references.Add(Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(path));
+                }
+            }
+        }
+
+        return references;
     }
 
     private class RenameRewriter : CSharpSyntaxRewriter

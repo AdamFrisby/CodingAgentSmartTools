@@ -29,6 +29,10 @@ public abstract class BaseRefactoringCommand : Command<BaseRefactoringCommand.Se
         [Description("Show what changes would be made without applying them")]
         [DefaultValue(false)]
         public bool DryRun { get; init; } = false;
+
+        [CommandOption("--project-path")]
+        [Description("Path to the project directory (for namespace and folder resolution)")]
+        public string? ProjectPath { get; init; }
     }
 
     public override int Execute(CommandContext context, Settings settings)

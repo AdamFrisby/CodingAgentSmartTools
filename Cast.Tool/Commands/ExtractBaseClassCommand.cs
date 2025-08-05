@@ -94,17 +94,18 @@ namespace Cast.Tool.Commands
                         AnsiConsole.MarkupLine("[yellow]Members to extract: {0}[/]", string.Join(", ", membersToExtract));
                     }
                     
-                    // Show diff for the modified original file
+                    // Use the new multi-file diff format
                     var dryRunModifiedCode = modifiedRoot.ToFullString();
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
-                    DiffUtility.DisplayDiff(sourceCode, dryRunModifiedCode, settings.FilePath);
-                    
-                    // Show the new base class file that would be created
                     var dryRunBaseClassPath = Path.Combine(Path.GetDirectoryName(settings.FilePath) ?? ".", $"{settings.BaseClassName}.cs");
+                    
+                    var fileChanges = new Dictionary<string, (string original, string modified)>
+                    {
+                        { settings.FilePath, (sourceCode, dryRunModifiedCode) },
+                        { dryRunBaseClassPath, ("", baseClassCode) }
+                    };
+                    
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]New base class file would be created: {0}[/]", dryRunBaseClassPath);
-                    DiffUtility.DisplayDiff("", baseClassCode, dryRunBaseClassPath);
+                    DiffUtility.DisplayMultiFileDiff(fileChanges);
                     
                     return 0;
                 }

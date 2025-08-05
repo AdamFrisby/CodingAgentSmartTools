@@ -73,4 +73,51 @@ public class RefactoringEngine
 
         return references;
     }
+
+    /// <summary>
+    /// Resolves the project path from a file path or explicit project path
+    /// </summary>
+    public static string? ResolveProjectPath(string filePath, string? explicitProjectPath = null)
+    {
+        if (!string.IsNullOrEmpty(explicitProjectPath))
+        {
+            return Path.GetFullPath(explicitProjectPath);
+        }
+
+        // Look for project files starting from the file's directory
+        var directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        while (directory != null)
+        {
+            if (Directory.GetFiles(directory, "*.csproj").Any() ||
+                Directory.GetFiles(directory, "*.vbproj").Any() ||
+                Directory.GetFiles(directory, "*.fsproj").Any() ||
+                Directory.GetFiles(directory, "*.sln").Any())
+            {
+                return directory;
+            }
+            
+            var parent = Directory.GetParent(directory);
+            directory = parent?.FullName;
+        }
+
+        // Fall back to the file's directory
+        return Path.GetDirectoryName(Path.GetFullPath(filePath));
+    }
+
+    /// <summary>
+    /// Gets the relative path from project root to the file
+    /// </summary>
+    public static string GetRelativePathFromProject(string filePath, string? projectPath = null)
+    {
+        var resolvedProjectPath = ResolveProjectPath(filePath, projectPath);
+        if (resolvedProjectPath == null)
+        {
+            return Path.GetFileName(filePath);
+        }
+
+        var fullFilePath = Path.GetFullPath(filePath);
+        var fullProjectPath = Path.GetFullPath(resolvedProjectPath);
+        
+        return Path.GetRelativePath(fullProjectPath, fullFilePath);
+    }
 }

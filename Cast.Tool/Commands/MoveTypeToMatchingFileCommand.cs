@@ -61,11 +61,17 @@ namespace Cast.Tool.Commands
                     var originalContent = File.ReadAllText(settings.FilePath);
                     AnsiConsole.MarkupLine("[green]Would move type '{0}' to {1}[/]", 
                         settings.TypeName, newFileName);
+                    
+                    // Use the new multi-file diff format
+                    var fileChanges = new Dictionary<string, (string original, string modified)>
+                    {
+                        { settings.FilePath, (originalContent, modifiedCode) },
+                        { newFileName, ("", extractedTypeCode) }
+                    };
+                    
                     AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]Changes to original file:[/]");
-                    DiffUtility.DisplayDiff(originalContent, modifiedCode, settings.FilePath);
-                    AnsiConsole.WriteLine();
-                    AnsiConsole.MarkupLine("[yellow]New file would be created: {0}[/]", newFileName);
+                    DiffUtility.DisplayMultiFileDiff(fileChanges);
+                    
                     return 0;
                 }
 

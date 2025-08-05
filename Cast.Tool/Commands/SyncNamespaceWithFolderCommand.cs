@@ -24,6 +24,10 @@ public class SyncNamespaceWithFolderCommand : Command<SyncNamespaceWithFolderCom
         [Description("Output file path (defaults to overwriting the input file)")]
         public string? OutputPath { get; init; }
 
+        [CommandOption("--project-path")]
+        [Description("Path to the project directory (for resolving root namespace)")]
+        public string? ProjectPath { get; init; }
+
         [CommandOption("--dry-run")]
         [Description("Show what changes would be made without applying them")]
         [DefaultValue(false)]
@@ -56,7 +60,7 @@ public class SyncNamespaceWithFolderCommand : Command<SyncNamespaceWithFolderCom
             }
 
             // Calculate expected namespace based on folder structure
-            var expectedNamespace = CalculateExpectedNamespace(settings.FilePath, settings.RootNamespace);
+            var expectedNamespace = CalculateExpectedNamespace(settings.FilePath, settings.RootNamespace, settings.ProjectPath);
             var currentNamespace = namespaceDeclaration.Name.ToString();
 
             if (currentNamespace == expectedNamespace)
@@ -92,23 +96,31 @@ public class SyncNamespaceWithFolderCommand : Command<SyncNamespaceWithFolderCom
         }
     }
 
-    private static string CalculateExpectedNamespace(string filePath, string? rootNamespace)
+    private static string CalculateExpectedNamespace(string filePath, string? rootNamespace, string? projectPath)
     {
-        var fileInfo = new FileInfo(filePath);
-        var projectRoot = FindProjectRoot(fileInfo.Directory!);
+        var resolvedProjectPath = RefactoringEngine.ResolveProjectPath(filePath, projectPath);
         
         // Use provided root namespace or project directory name
-        var baseNamespace = rootNamespace ?? projectRoot?.Name ?? "DefaultNamespace";
+        var baseNamespace = rootNamespace ?? 
+                           (resolvedProjectPath != null ? Path.GetFileName(resolvedProjectPath) : "DefaultNamespace");
         
-        // Calculate relative path from project root
-        var relativePath = projectRoot != null 
-            ? Path.GetRelativePath(projectRoot.FullName, fileInfo.Directory!.FullName)
-            : fileInfo.Directory!.Name;
+        // Calculate relative path from project root to the file's directory
+        var fileDirectory = Path.GetDirectoryName(Path.GetFullPath(filePath));
+        string relativePath;
+        
+        if (resolvedProjectPath != null && fileDirectory != null)
+        {
+            relativePath = Path.GetRelativePath(resolvedProjectPath, fileDirectory);
+        }
+        else
+        {
+            relativePath = Path.GetFileName(fileDirectory ?? "");
+        }
 
         // Build namespace from path segments
         var segments = new List<string> { baseNamespace };
         
-        if (relativePath != ".")
+        if (relativePath != "." && !string.IsNullOrEmpty(relativePath))
         {
             var pathSegments = relativePath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
                 .Where(s => !string.IsNullOrEmpty(s) && IsValidNamespaceSegment(s));

@@ -92,6 +92,77 @@ public static class DiffUtility
         }
     }
 
+    /// <summary>
+    /// Displays a multi-file diff with clear separation between files
+    /// </summary>
+    /// <param name="fileChanges">Dictionary of file paths to (original, modified) content tuples</param>
+    public static void DisplayMultiFileDiff(Dictionary<string, (string original, string modified)> fileChanges)
+    {
+        if (fileChanges.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[yellow]No changes would be made[/]");
+            return;
+        }
+
+        bool isFirst = true;
+        foreach (var kvp in fileChanges)
+        {
+            if (!isFirst)
+            {
+                AnsiConsole.WriteLine(); // Add spacing between files
+            }
+            
+            var filePath = kvp.Key;
+            var (original, modified) = kvp.Value;
+            
+            if (string.IsNullOrEmpty(original))
+            {
+                AnsiConsole.MarkupLine($"[yellow]New file would be created: {filePath}[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"[yellow]Changes to file: {filePath}[/]");
+            }
+            
+            DisplayDiff(original, modified, filePath);
+            isFirst = false;
+        }
+    }
+
+    /// <summary>
+    /// Display a summary of files that would be affected
+    /// </summary>
+    /// <param name="fileChanges">Dictionary of file paths to (original, modified) content tuples</param>
+    public static void DisplayFileSummary(Dictionary<string, (string original, string modified)> fileChanges)
+    {
+        if (fileChanges.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[yellow]No files would be affected[/]");
+            return;
+        }
+
+        AnsiConsole.MarkupLine($"[cyan]Files that would be affected ({fileChanges.Count}):[/]");
+        foreach (var kvp in fileChanges)
+        {
+            var filePath = kvp.Key;
+            var (original, modified) = kvp.Value;
+            
+            if (string.IsNullOrEmpty(original))
+            {
+                AnsiConsole.MarkupLine($"  [green]+ {filePath}[/] (new file)");
+            }
+            else if (string.IsNullOrEmpty(modified))
+            {
+                AnsiConsole.MarkupLine($"  [red]- {filePath}[/] (deleted)");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine($"  [yellow]~ {filePath}[/] (modified)");
+            }
+        }
+        AnsiConsole.WriteLine();
+    }
+
     private static List<DiffHunk> ComputeDiff(string[] originalLines, string[] modifiedLines)
     {
         var hunks = new List<DiffHunk>();
